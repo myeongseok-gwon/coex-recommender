@@ -125,3 +125,40 @@ src/
 - 터치 친화적 UI
 - 로딩 스피너 및 사용자 피드백
 - 모달 및 팝업 최적화
+
+## 🚀 자동 배포 설정 (GitHub Actions + Vercel)
+
+### 1. GitHub 저장소 설정
+1. GitHub에 저장소 생성 및 코드 푸시
+2. 저장소 Settings → Secrets and variables → Actions에서 다음 시크릿 추가:
+   - `VITE_GEMINI_API_KEY`: Google Gemini API 키
+   - `VITE_SUPABASE_URL`: Supabase 프로젝트 URL
+   - `VITE_SUPABASE_ANON_KEY`: Supabase anon 키
+   - `VERCEL_TOKEN`: Vercel 계정 토큰
+   - `VERCEL_ORG_ID`: Vercel 조직 ID
+   - `VERCEL_PROJECT_ID`: Vercel 프로젝트 ID
+
+### 2. Vercel 프로젝트 설정
+1. [Vercel](https://vercel.com/) 접속
+2. GitHub 저장소 연결
+3. 프로젝트 생성 후 다음 정보 확인:
+   - Organization ID (Settings → General)
+   - Project ID (Settings → General)
+
+### 3. 자동 배포
+- `main` 브랜치에 푸시하면 자동으로 Vercel에 배포됩니다
+- Pull Request 생성 시에도 미리보기 배포가 생성됩니다
+
+### 4. 수동 배포 (선택사항)
+```bash
+# Vercel CLI 설치
+npm i -g vercel
+
+# 프로젝트 루트에서 배포
+vercel
+
+# 환경 변수 설정
+vercel env add VITE_GEMINI_API_KEY
+vercel env add VITE_SUPABASE_URL  
+vercel env add VITE_SUPABASE_ANON_KEY
+```
