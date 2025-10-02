@@ -33,6 +33,21 @@ const App: React.FC = () => {
     loadData();
   }, []);
 
+  // 추천 결과 중복 제거 (뒤 항목 제거 = 최초 항목 유지)
+  const dedupeRecommendations = (list: any[]) => {
+    const seen = new Set<number>();
+    const result: any[] = [];
+    for (const item of list || []) {
+      const id = Number(item?.id);
+      if (!Number.isFinite(id)) continue;
+      if (!seen.has(id)) {
+        seen.add(id);
+        result.push(item);
+      }
+    }
+    return result;
+  };
+
   const handleUserValid = async (userId: number, hasRecommendation: boolean) => {
     try {
       // 데이터베이스에서 사용자 정보 조회
@@ -50,7 +65,8 @@ const App: React.FC = () => {
 
       if (hasRecommendation) {
         // 이미 추천이 있는 경우, 추천 결과를 파싱하여 바로 추천 페이지로 이동
-        const recommendations = userData.rec_result ? JSON.parse(userData.rec_result) : [];
+        const parsed = userData.rec_result ? JSON.parse(userData.rec_result) : [];
+        const recommendations = dedupeRecommendations(parsed);
         
         setState(prev => ({
           ...prev,
@@ -87,7 +103,8 @@ const App: React.FC = () => {
 
       // LLM API 호출
       const visitorInfo = createVisitorInfo(state.currentUser, formData);
-      const recommendations = await llmService.getRecommendations(state.boothData, visitorInfo);
+      const rawRecommendations = await llmService.getRecommendations(state.boothData, visitorInfo);
+      const recommendations = dedupeRecommendations(rawRecommendations);
       
       // 추천 결과를 데이터베이스에 저장
       await userService.updateUserRecommendation(
