@@ -38,7 +38,15 @@ jobs:
         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
     - name: Deploy to GitHub Pages
+      id: deploy
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./dist
+
+    - name: Post URL to summary
+      env:
+        REPO: ${{ github.repository }}
+      run: |
+        echo "### ✅ GitHub Pages 배포 완료" >> $GITHUB_STEP_SUMMARY
+        echo "배포 URL: https://${REPO##*/}.github.io/${REPO##*/}/" >> $GITHUB_STEP_SUMMARY
