@@ -8,7 +8,11 @@ on:
 
 jobs:
   build-and-deploy:
+    # Vercel 필수 시크릿이 모두 있을 때만 실행
+    if: ${{ secrets.VERCEL_TOKEN && secrets.VERCEL_ORG_ID && secrets.VERCEL_PROJECT_ID }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
     - name: Checkout code

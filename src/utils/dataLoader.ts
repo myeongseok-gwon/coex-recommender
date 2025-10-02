@@ -7,7 +7,7 @@ export const loadBoothData = async (): Promise<any[]> => {
   }
 
   try {
-    const response = await fetch('/foodweek_selected.jsonl');
+    const response = await fetch(`${import.meta.env.BASE_URL}foodweek_selected.jsonl`);
     const text = await response.text();
     
     const lines = text.split('\n').filter(line => line.trim());
