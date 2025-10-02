@@ -34,7 +34,7 @@ const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
       </div>
 
       <div className="booth-list">
-        {recommendations.map((rec, index) => {
+        {recommendations.map((rec) => {
           const booth = getBoothById(rec.id);
           if (!booth) return null;
 

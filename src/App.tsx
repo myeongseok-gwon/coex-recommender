@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { AppState, User, UserFormData, Recommendation, Booth } from './types';
-import { loadBoothData, loadUserData } from './utils/dataLoader';
+import { AppState, User, UserFormData, Booth } from './types';
+import { loadBoothData } from './utils/dataLoader';
 import { userService } from './services/supabase';
 import { llmService } from './services/llm';
 import LandingPage from './components/LandingPage';
@@ -110,11 +110,11 @@ const App: React.FC = () => {
     }
   };
 
-  const createVisitorInfo = (user: User, formData: UserFormData): string => {
+  const createVisitorInfo = (_user: User, formData: UserFormData): string => {
     let info = `나이: ${formData.age}세\n`;
     info += `성별: ${formData.gender}\n`;
     
-    // if (user.type.startsWith('many_')) {
+    // if (_user.type.startsWith('many_')) {
     //   info += `회사명: ${formData.company_name}\n`;
     //   info += `총 근무 경력: ${formData.work_experience}년\n`;
     //   info += `전시회 참관 경험: ${formData.expo_experience}회\n`;
