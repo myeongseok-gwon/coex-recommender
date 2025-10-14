@@ -16,12 +16,9 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
   const [modalStep, setModalStep] = useState<1 | 2>(1);
   
   // 카메라 관련 상태
-  const [showCamera, setShowCamera] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [cameraLoading, setCameraLoading] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // 평가 상태
   const [boothRating, setBoothRating] = useState(0);
@@ -32,13 +29,6 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
 
   useEffect(() => {
     checkEvaluation();
-    
-    // 컴포넌트 언마운트 시 카메라 스트림 정리
-    return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-    };
   }, []);
 
   const checkEvaluation = async () => {
@@ -52,58 +42,40 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
     }
   };
 
-  const startCamera = async () => {
-    setShowCamera(true);
-    
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: 'user',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        } 
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-    } catch (err) {
-      console.error('카메라 접근 오류:', err);
-      alert('카메라에 접근할 수 없습니다. 카메라 권한을 확인해주세요.');
-      setShowCamera(false);
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhoto(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  const capturePhoto = () => {
-    if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      const context = canvas.getContext('2d');
-      
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      
-      if (context) {
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const photoData = canvas.toDataURL('image/jpeg', 0.9);
-        setPhoto(photoData);
-        
-        // 카메라 스트림 중지
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.stop());
-          streamRef.current = null;
-        }
-        
-        // 카메라 UI 숨기기
-        setShowCamera(false);
-      }
+  const openCamera = () => {
+    // 카메라 열기 전에 현재 상태를 sessionStorage에 저장
+    try {
+      const appState = {
+        currentUser: user,
+        currentPage: 'detail',
+        selectedBooth: booth,
+        recommendations: user.rec_result ? JSON.parse(user.rec_result) : []
+      };
+      sessionStorage.setItem('appState', JSON.stringify(appState));
+      console.log('상태 저장됨:', appState);
+    } catch (error) {
+      console.error('상태 저장 오류:', error);
     }
+    
+    fileInputRef.current?.click();
   };
 
   const retakePhoto = () => {
     setPhoto(null);
-    setShowCamera(false);
-    startCamera();
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleStartEvaluation = async () => {
@@ -131,15 +103,14 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
       );
       setEvaluation(newEvaluation as Evaluation);
       
-      // 카메라 상태 초기화
-      setShowCamera(false);
+      // 상태 초기화
       setPhoto(null);
-      
-      // 카메라 스트림 정리
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
+      
+      // 평가가 성공적으로 시작되었으므로 저장된 상태 정리
+      sessionStorage.removeItem('appState');
       
     } catch (error) {
       console.error('사진 업로드 또는 평가 시작 오류:', error);
@@ -147,15 +118,6 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
     } finally {
       setCameraLoading(false);
     }
-  };
-
-  const cancelCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-    setShowCamera(false);
-    setPhoto(null);
   };
 
   const handleEndEvaluation = () => {
@@ -240,6 +202,12 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
     setModalStep(1);
   };
 
+  const handleBackClick = () => {
+    // 뒤로가기 시 저장된 상태 정리
+    sessionStorage.removeItem('appState');
+    onBack();
+  };
+
   if (loading) {
     return (
       <div className="container">
@@ -256,7 +224,7 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
   return (
     <div className="container">
       <div className="top-nav-bar">
-        <div className="nav-left" onClick={onBack}>
+        <div className="nav-left" onClick={handleBackClick}>
           ← 뒤로가기
         </div>
       </div>
@@ -287,39 +255,16 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
         <div style={{ marginTop: '24px' }}>
           {!hasStarted ? (
             <>
-              {showCamera ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    style={{
-                      width: '100%',
-                      maxWidth: '400px',
-                      borderRadius: '8px',
-                      backgroundColor: '#000'
-                    }}
-                  />
-                  <canvas ref={canvasRef} style={{ display: 'none' }} />
-                  
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button 
-                      onClick={capturePhoto}
-                      className="btn btn-primary"
-                      style={{ fontSize: '16px', padding: '12px 24px' }}
-                    >
-                      📷 촬영하기
-                    </button>
-                    <button 
-                      onClick={cancelCamera}
-                      className="btn"
-                      style={{ fontSize: '16px', padding: '12px 24px' }}
-                    >
-                      취소
-                    </button>
-                  </div>
-                </div>
-              ) : photo ? (
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
+              
+              {photo ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
                   <img 
                     src={photo} 
@@ -353,7 +298,7 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
               ) : (
                 <button
                   className="btn btn-primary"
-                  onClick={startCamera}
+                  onClick={openCamera}
                   style={{ fontSize: '16px', padding: '12px 24px' }}
                 >
                   📷 사진 촬영하고 시작하기

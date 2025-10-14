@@ -28,6 +28,26 @@ const App: React.FC = () => {
       try {
         const boothData = await loadBoothData();
         setState(prev => ({ ...prev, boothData }));
+        
+        // sessionStorage에서 상태 복원 시도
+        const savedState = sessionStorage.getItem('appState');
+        if (savedState) {
+          try {
+            const parsedState = JSON.parse(savedState);
+            console.log('상태 복원:', parsedState);
+            setState(prev => ({
+              ...prev,
+              currentUser: parsedState.currentUser,
+              currentPage: parsedState.currentPage,
+              recommendations: parsedState.recommendations || [],
+              selectedBooth: parsedState.selectedBooth,
+              boothData // 부스 데이터는 새로 로드한 것 사용
+            }));
+          } catch (error) {
+            console.error('상태 복원 오류:', error);
+            sessionStorage.removeItem('appState');
+          }
+        }
       } catch (error) {
         console.error('부스 데이터 로드 오류:', error);
       }
