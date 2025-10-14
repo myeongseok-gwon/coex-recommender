@@ -30,7 +30,7 @@ const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
 
       <div className="header">
         <h1>추천 부스</h1>
-        <p>당신에게 맞는 부스를 추천해드립니다</p>
+        <p>당신에게 맞는 부스를 추천해드립니다. (추천 등수 높은 순)</p>
       </div>
 
       <div className="booth-list">
