@@ -124,14 +124,11 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
       const photoUrl = await userService.uploadPhoto(user.user_id, file, booth.id);
       
       // 평가 시작 (photo_url 포함)
-      const newEvaluation = {
-        user_id: user.user_id,
-        booth_id: booth.id,
-        photo_url: photoUrl,
-        started_at: new Date().toISOString()
-      };
-      
-      await evaluationService.createEvaluation(newEvaluation);
+      const newEvaluation = await evaluationService.startEvaluation(
+        user.user_id, 
+        booth.id, 
+        photoUrl
+      );
       setEvaluation(newEvaluation as Evaluation);
       
       // 카메라 상태 초기화
@@ -258,9 +255,11 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
 
   return (
     <div className="container">
-      <button className="back-button" onClick={onBack}>
-        ← 뒤로가기
-      </button>
+      <div className="top-nav-bar">
+        <div className="nav-left" onClick={onBack}>
+          ← 뒤로가기
+        </div>
+      </div>
 
       <div className="card">
         <h2 className="card-title">{booth.company_name_kor}</h2>
@@ -493,6 +492,33 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
       )}
 
       <style>{`
+        .top-nav-bar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          background: #1976d2;
+          color: white;
+          padding: 16px 24px;
+          margin: -20px -20px 20px -20px;
+          border-bottom: 3px solid #1565c0;
+        }
+
+        .nav-left {
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: opacity 0.2s;
+        }
+
+        .nav-left:hover {
+          opacity: 0.8;
+        }
+
+        .nav-right {
+          font-size: 16px;
+          font-weight: 600;
+        }
+
         .rating-container {
           display: flex;
           align-items: center;

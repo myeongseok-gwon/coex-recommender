@@ -15,6 +15,18 @@ const LandingPage: React.FC<LandingPageProps> = ({ onUserValid }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Admin 모드 체크
+    if (userId.toLowerCase() === 'admin') {
+      setLoading(true);
+      setError('');
+      
+      // Admin 모드로 진입 (user_id = 0, 빈 추천으로 지도 페이지 접근)
+      onUserValid(0, true);
+      setLoading(false);
+      return;
+    }
+
     const userIdNum = parseInt(userId);
     
     if (isNaN(userIdNum)) {
@@ -50,21 +62,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ onUserValid }) => {
     <div className="container">
       <div className="header">
         <h1>COEX 추천 시스템</h1>
-        <p>전시회 부스 추천을 받으려면 사용자 ID를 입력해주세요</p>
+        <p>전시회 부스 추천을 받으려면 전화번호를 입력해주세요</p>
       </div>
 
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label htmlFor="userId" className="form-label">
-            사용자 ID
+            전화번호
           </label>
           <input
-            type="number"
+            type="text"
             id="userId"
             className="form-input"
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
-            placeholder="사용자 ID를 입력하세요"
+            placeholder="01012345678"
             required
           />
           {error && <div className="error-message">{error}</div>}
@@ -78,10 +90,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onUserValid }) => {
           {loading ? '확인 중...' : '시작하기'}
         </button>
       </form>
-
-      <div style={{ marginTop: '20px', fontSize: '14px', color: '#666' }}>
-        <p>유효한 사용자 ID: 1-16</p>
-      </div>
     </div>
   );
 };

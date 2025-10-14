@@ -175,9 +175,11 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onBack }) =
 
   return (
     <div className="container">
-      <button className="back-button" onClick={onBack}>
-        ← 뒤로가기
-      </button>
+      <div className="top-nav-bar">
+        <div className="nav-left" onClick={onBack}>
+          ← 뒤로가기
+        </div>
+      </div>
 
       <div className="header">
         <h1>사용자 정보 입력</h1>
@@ -287,6 +289,33 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onBack }) =
       </form>
 
       <style>{`
+        .top-nav-bar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          background: #1976d2;
+          color: white;
+          padding: 16px 24px;
+          margin: -20px -20px 20px -20px;
+          border-bottom: 3px solid #1565c0;
+        }
+
+        .nav-left {
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: opacity 0.2s;
+        }
+
+        .nav-left:hover {
+          opacity: 0.8;
+        }
+
+        .nav-right {
+          font-size: 16px;
+          font-weight: 600;
+        }
+
         .interests-container {
           border: 1px solid #e0e0e0;
           border-radius: 8px;

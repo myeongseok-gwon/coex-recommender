@@ -8,6 +8,9 @@ import UserFormPage from './components/UserFormPage';
 import LoadingPage from './components/LoadingPage';
 import RecommendationsPage from './components/RecommendationsPage';
 import BoothDetailPage from './components/BoothDetailPage';
+import MapPage from './components/MapPage';
+import SurveyPage from './components/SurveyPage';
+import CompletePage from './components/CompletePage';
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>({
@@ -50,6 +53,22 @@ const App: React.FC = () => {
 
   const handleUserValid = async (userId: number, hasRecommendation: boolean) => {
     try {
+      // Admin 모드 처리 (userId === 0)
+      if (userId === 0) {
+        const adminUser: User = {
+          user_id: 0,
+          type: 'many_personal',
+        };
+        
+        setState(prev => ({
+          ...prev,
+          currentUser: adminUser,
+          recommendations: [],
+          currentPage: 'map'
+        }));
+        return;
+      }
+
       // 데이터베이스에서 사용자 정보 조회
       const userData = await userService.getUser(userId);
       
@@ -61,6 +80,26 @@ const App: React.FC = () => {
       // started_at 업데이트 (아직 업데이트되지 않은 경우에만)
       if (!userData.started_at) {
         await userService.updateUserStartedAt(userId);
+      }
+
+      // 실험 완료 확인
+      if (userData.survey_finished_at) {
+        setState(prev => ({
+          ...prev,
+          currentUser: userData as User,
+          currentPage: 'complete'
+        }));
+        return;
+      }
+
+      // 평가 완료, 서베이 미완료
+      if (userData.evaluation_finished_at && !userData.survey_finished_at) {
+        setState(prev => ({
+          ...prev,
+          currentUser: userData as User,
+          currentPage: 'survey'
+        }));
+        return;
       }
 
       if (hasRecommendation) {
@@ -164,12 +203,40 @@ const App: React.FC = () => {
     }));
   };
 
+  const handleNavigateToMap = () => {
+    setState(prev => ({
+      ...prev,
+      currentPage: 'map'
+    }));
+  };
+
+  const handleNavigateToSurvey = (updatedUser: User) => {
+    setState(prev => ({
+      ...prev,
+      currentUser: updatedUser,
+      currentPage: 'survey'
+    }));
+  };
+
+  const handleSurveyComplete = (updatedUser: User) => {
+    setState(prev => ({
+      ...prev,
+      currentUser: updatedUser,
+      currentPage: 'complete'
+    }));
+  };
+
   const handleBack = () => {
     setState(prev => {
       if (prev.currentPage === 'detail') {
         return {
           ...prev,
           selectedBooth: null,
+          currentPage: 'recommendations'
+        };
+      } else if (prev.currentPage === 'map') {
+        return {
+          ...prev,
           currentPage: 'recommendations'
         };
       } else if (prev.currentPage === 'recommendations') {
@@ -219,8 +286,32 @@ const App: React.FC = () => {
             boothData={state.boothData}
             onBoothClick={handleBoothClick}
             onBack={handleBack}
+            onNavigateToMap={handleNavigateToMap}
+            onNavigateToSurvey={handleNavigateToSurvey}
           />
         );
+      
+      case 'map':
+        if (!state.currentUser) return null;
+        return (
+          <MapPage
+            user={state.currentUser}
+            recommendations={state.recommendations}
+            onBack={handleBack}
+          />
+        );
+      
+      case 'survey':
+        if (!state.currentUser) return null;
+        return (
+          <SurveyPage
+            user={state.currentUser}
+            onComplete={handleSurveyComplete}
+          />
+        );
+      
+      case 'complete':
+        return <CompletePage />;
       
       case 'detail':
         if (!state.currentUser || !state.selectedBooth) return null;

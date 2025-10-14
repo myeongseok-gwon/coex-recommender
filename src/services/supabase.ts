@@ -92,6 +92,31 @@ export const userService = {
       .eq('user_id', userId);
     
     if (error) throw error;
+  },
+
+  async updateEvaluationFinished(userId: number) {
+    const { error } = await supabase
+      .from('user')
+      .update({
+        evaluation_finished_at: new Date().toISOString()
+      })
+      .eq('user_id', userId);
+    
+    if (error) throw error;
+  },
+
+  async updateFinalSurvey(userId: number, finalRating: number, finalPros: string, finalCons: string) {
+    const { error } = await supabase
+      .from('user')
+      .update({
+        final_rating: finalRating,
+        final_pros: finalPros,
+        final_cons: finalCons,
+        survey_finished_at: new Date().toISOString()
+      })
+      .eq('user_id', userId);
+    
+    if (error) throw error;
   }
 };
 
@@ -100,6 +125,24 @@ export const evaluationService = {
     const { data, error } = await supabase
       .from('evaluation')
       .insert(evaluation)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async startEvaluation(userId: number, boothId: number, photoUrl?: string) {
+    const { data, error } = await supabase
+      .from('evaluation')
+      .upsert({
+        user_id: userId,
+        booth_id: boothId,
+        photo_url: photoUrl,
+        started_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id,booth_id'
+      })
       .select()
       .single();
     
@@ -147,5 +190,73 @@ export const evaluationService = {
     
     if (error) throw error;
     return data;
+  },
+
+  async deleteRecommendation(userId: number, boothId: number) {
+    const { data, error } = await supabase
+      .from('evaluation')
+      .upsert({
+        user_id: userId,
+        booth_id: boothId,
+        is_deleted: true,
+        deleted_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id,booth_id'
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+};
+
+export const boothPositionService = {
+  async getAllPositions() {
+    const { data, error } = await supabase
+      .from('booth_positions')
+      .select('*')
+      .order('booth_id', { ascending: true });
+    
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getPosition(boothId: number) {
+    const { data, error } = await supabase
+      .from('booth_positions')
+      .select('*')
+      .eq('booth_id', boothId)
+      .maybeSingle();
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  },
+
+  async upsertPosition(boothId: number, x: number, y: number) {
+    const { data, error } = await supabase
+      .from('booth_positions')
+      .upsert({
+        booth_id: boothId,
+        x,
+        y,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'booth_id'
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async deletePosition(boothId: number) {
+    const { error } = await supabase
+      .from('booth_positions')
+      .delete()
+      .eq('booth_id', boothId);
+    
+    if (error) throw error;
   }
 };

@@ -53,9 +53,17 @@ export interface UserFormData {
   details: string;
 }
 
+export interface BoothPosition {
+  booth_id: number;
+  x: number; // 0-1 사이의 상대적 x 좌표
+  y: number; // 0-1 사이의 상대적 y 좌표
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface AppState {
   currentUser: User | null;
-  currentPage: 'landing' | 'form' | 'loading' | 'recommendations' | 'detail';
+  currentPage: 'landing' | 'form' | 'loading' | 'recommendations' | 'detail' | 'map' | 'survey' | 'complete';
   recommendations: Recommendation[];
   selectedBooth: Booth | null;
   boothData: Booth[];
