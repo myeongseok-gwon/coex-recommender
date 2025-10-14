@@ -170,8 +170,12 @@ const App: React.FC = () => {
     let info = `나이: ${formData.age}세\n`;
     info += `성별: ${formData.gender}\n`;
     
-    // 관심사 정보 추가 (many 타입일 경우)
-    if (user.type.startsWith('many_') && formData.interests && Object.keys(formData.interests).length > 0) {
+    // 유저 타입에서 언더바 사이의 단어 추출 (예: abc_many_def -> "many")
+    const typeMatch = user.type.match(/_(\w+)_/);
+    const typeKeyword = typeMatch ? typeMatch[1] : '';
+    
+    // 관심사 정보 추가 (항상 표시)
+    if (formData.interests && Object.keys(formData.interests).length > 0) {
       info += '\n선택한 관심사:\n';
       for (const [subcategory, items] of Object.entries(formData.interests)) {
         if (items && items.length > 0) {
@@ -180,9 +184,9 @@ const App: React.FC = () => {
       }
     }
     
-    // 추가 기대사항 또는 자유 입력 내용
-    if (formData.details && formData.details.trim()) {
-      info += `\n${user.type.startsWith('many_') ? '추가 기대사항' : '기대사항 및 선호도'}: ${formData.details}`;
+    // 기대사항 및 선호도 (few 타입일 경우 제외)
+    if (typeKeyword !== 'few' && formData.details && formData.details.trim()) {
+      info += `\n기대사항 및 선호도: ${formData.details}`;
     }
     
     return info;
