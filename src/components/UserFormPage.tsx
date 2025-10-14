@@ -158,8 +158,8 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onBack }) =
           delete newInterests[subcategory];
         }
       } else {
-        // 선택되지 않은 항목이면 추가
-        newInterests[subcategory].push(item);
+        // 선택되지 않은 항목이면 추가 (불변성 유지를 위해 새 배열 생성)
+        newInterests[subcategory] = [...newInterests[subcategory], item];
       }
       
       return {
@@ -214,74 +214,57 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onBack }) =
             <option value="">성별을 선택하세요</option>
             <option value="남성">남성</option>
             <option value="여성">여성</option>
-            <option value="기타">기타</option>
           </select>
         </div>
 
-        {isManyType ? (
-          <>
-            <div className="form-group">
-              <label className="form-label">
-                관심사 선택 *
-              </label>
-              <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
-                관심있는 분야를 선택해주세요 (여러 개 선택 가능)
-              </p>
-              
-              <div className="interests-container">
-                {Object.entries(INTEREST_CATEGORIES).map(([category, data]) => (
-                  <div key={category} className="interest-category">
-                    <button
-                      type="button"
-                      className={`category-header ${openCategories.has(category) ? 'open' : ''}`}
-                      onClick={() => toggleCategory(category)}
-                    >
-                      <span className="category-icon">{data.icon}</span>
-                      <span className="category-name">{category}</span>
-                      <span className="category-arrow">{openCategories.has(category) ? '▼' : '▶'}</span>
-                    </button>
-                    
-                    {openCategories.has(category) && (
-                      <div className="subcategories">
-                        {Object.entries(data.subcategories).map(([subcategory, items]) => (
-                          <div key={subcategory} className="subcategory">
-                            <div className="subcategory-title">{subcategory}</div>
-                            <div className="items-grid">
-                              {items.map((item) => (
-                                <label key={item} className="checkbox-item">
-                                  <input
-                                    type="checkbox"
-                                    checked={isItemSelected(subcategory, item)}
-                                    onChange={() => handleInterestToggle(subcategory, item)}
-                                  />
-                                  <span>{item}</span>
-                                </label>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
+        <div className="form-group">
+          <label className="form-label">
+            관심사 선택 *
+          </label>
+          <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
+            관심있는 분야를 선택해주세요 (여러 개 선택 가능)
+          </p>
+          
+          <div className="interests-container">
+            {Object.entries(INTEREST_CATEGORIES).map(([category, data]) => (
+              <div key={category} className="interest-category">
+                <button
+                  type="button"
+                  className={`category-header ${openCategories.has(category) ? 'open' : ''}`}
+                  onClick={() => toggleCategory(category)}
+                >
+                  <span className="category-icon">{data.icon}</span>
+                  <span className="category-name">{category}</span>
+                  <span className="category-arrow">{openCategories.has(category) ? '▼' : '▶'}</span>
+                </button>
+                
+                {openCategories.has(category) && (
+                  <div className="subcategories">
+                    {Object.entries(data.subcategories).map(([subcategory, items]) => (
+                      <div key={subcategory} className="subcategory">
+                        <div className="subcategory-title">{subcategory}</div>
+                        <div className="items-grid">
+                          {items.map((item) => (
+                            <label key={item} className="checkbox-item">
+                              <input
+                                type="checkbox"
+                                checked={isItemSelected(subcategory, item)}
+                                onChange={() => handleInterestToggle(subcategory, item)}
+                              />
+                              <span>{item}</span>
+                            </label>
+                          ))}
+                        </div>
                       </div>
-                    )}
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            </div>
+            ))}
+          </div>
+        </div>
 
-            <div className="form-group">
-              <label htmlFor="details" className="form-label">
-                추가 기대사항 (선택)
-              </label>
-              <textarea
-                id="details"
-                className="form-textarea"
-                value={formData.details}
-                onChange={(e) => handleInputChange('details', e.target.value)}
-                placeholder="추가로 전달하고 싶은 내용이 있다면 작성해주세요"
-                rows={4}
-              />
-            </div>
-          </>
-        ) : (
+        {isManyType && (
           <div className="form-group">
             <label htmlFor="details" className="form-label">
               오늘 전시회에 대한 기대사항과 선호도 *

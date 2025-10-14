@@ -7,7 +7,8 @@
 1. **사용자 인증**: 미리 정의된 사용자 ID로 로그인
 2. **사용자 정보 입력**: 사용자 타입에 따른 차별화된 폼
 3. **AI 추천**: Google Gemini API를 활용한 맞춤형 부스 추천
-4. **부스 평가**: 부스 방문 및 만족도 평가 시스템
+4. **부스별 사진 촬영**: 부스 방문 시 카메라로 사진 촬영 및 자동 업로드
+5. **부스 평가**: 부스 방문 및 만족도 평가 시스템
 
 ## 기술 스택
 
@@ -32,9 +33,15 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 ```
 
 3. Supabase 데이터베이스 설정
-`supabase-schema.sql` 파일의 내용을 Supabase SQL 에디터에서 실행하세요.
+- `supabase-schema.sql` 파일의 내용을 Supabase SQL 에디터에서 실행하세요.
+- `add-photo-url-column.sql` 파일을 실행하여 user 테이블에 photo_url 컬럼을 추가하세요.
+- `add-evaluation-photo-url-column.sql` 파일을 실행하여 evaluation 테이블에 photo_url 컬럼을 추가하세요.
 
-4. 개발 서버 실행
+4. Supabase Storage 설정
+- Supabase Dashboard → Storage에서 `user-photos` 버킷을 생성하고 Public으로 설정하세요.
+- Storage 정책 설정은 `DEPLOYMENT.md` 파일을 참조하세요.
+
+5. 개발 서버 실행
 ```bash
 npm run dev
 ```
@@ -51,6 +58,7 @@ npm run dev
 ### User 테이블
 - `user_id`: 사용자 ID (Primary Key)
 - `type`: 사용자 타입
+- `photo_url`: 사용자 사진 URL (Supabase Storage)
 - `age`: 나이
 - `gender`: 성별
 - `company_name`: 회사명 (many_ 타입만)
@@ -66,7 +74,9 @@ npm run dev
 - `id`: 평가 ID (Primary Key)
 - `user_id`: 사용자 ID (Foreign Key)
 - `booth_id`: 부스 ID
-- `rating`: 평점 (1-5)
+- `photo_url`: 부스 방문 사진 URL (Supabase Storage)
+- `booth_rating`: 부스 평점 (1-5)
+- `rec_rating`: 추천 평점 (1-5)
 - `started_at`: 평가 시작 시간
 - `ended_at`: 평가 종료 시간
 
@@ -116,6 +126,8 @@ src/
 
 ### 5. 부스 상세 및 평가
 - 부스 상세 정보 표시
+- 부스 방문 시 카메라로 사진 촬영
+- Supabase Storage에 부스별 사진 자동 업로드
 - 방문 시작/종료 기능
 - 5점 만점 평가 시스템
 

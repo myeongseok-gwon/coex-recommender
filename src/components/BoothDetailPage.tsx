@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { User, Booth, Evaluation } from '../types';
 import { evaluationService, userService } from '../services/supabase';
 
@@ -15,6 +15,14 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [modalStep, setModalStep] = useState<1 | 2>(1);
   
+  // 카메라 관련 상태
+  const [showCamera, setShowCamera] = useState(false);
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [cameraLoading, setCameraLoading] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  
   // 평가 상태
   const [boothRating, setBoothRating] = useState(0);
   const [recRating, setRecRating] = useState(0);
@@ -24,6 +32,13 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
 
   useEffect(() => {
     checkEvaluation();
+    
+    // 컴포넌트 언마운트 시 카메라 스트림 정리
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
   }, []);
 
   const checkEvaluation = async () => {
@@ -37,20 +52,113 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
     }
   };
 
-  const handleStartEvaluation = async () => {
+  const startCamera = async () => {
+    setShowCamera(true);
+    
     try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      console.error('카메라 접근 오류:', err);
+      alert('카메라에 접근할 수 없습니다. 카메라 권한을 확인해주세요.');
+      setShowCamera(false);
+    }
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      if (context) {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const photoData = canvas.toDataURL('image/jpeg', 0.9);
+        setPhoto(photoData);
+        
+        // 카메라 스트림 중지
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+        }
+        
+        // 카메라 UI 숨기기
+        setShowCamera(false);
+      }
+    }
+  };
+
+  const retakePhoto = () => {
+    setPhoto(null);
+    setShowCamera(false);
+    startCamera();
+  };
+
+  const handleStartEvaluation = async () => {
+    if (!photo) {
+      alert('사진을 촬영해주세요.');
+      return;
+    }
+
+    setCameraLoading(true);
+
+    try {
+      // Base64를 Blob으로 변환
+      const response = await fetch(photo);
+      const blob = await response.blob();
+      const file = new File([blob], `user_${user.user_id}_booth_${booth.id}_photo.jpg`, { type: 'image/jpeg' });
+      
+      // Supabase Storage에 사진 업로드 (부스별)
+      const photoUrl = await userService.uploadPhoto(user.user_id, file, booth.id);
+      
+      // 평가 시작 (photo_url 포함)
       const newEvaluation = {
         user_id: user.user_id,
         booth_id: booth.id,
+        photo_url: photoUrl,
         started_at: new Date().toISOString()
       };
       
       await evaluationService.createEvaluation(newEvaluation);
       setEvaluation(newEvaluation as Evaluation);
+      
+      // 카메라 상태 초기화
+      setShowCamera(false);
+      setPhoto(null);
+      
+      // 카메라 스트림 정리
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+      
     } catch (error) {
-      console.error('평가 시작 오류:', error);
-      alert('평가를 시작할 수 없습니다. 다시 시도해주세요.');
+      console.error('사진 업로드 또는 평가 시작 오류:', error);
+      alert('사진 업로드 중 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
+      setCameraLoading(false);
     }
+  };
+
+  const cancelCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setShowCamera(false);
+    setPhoto(null);
   };
 
   const handleEndEvaluation = () => {
@@ -65,7 +173,7 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
 
   const handleStep1Next = () => {
     if (boothRating === 0) {
-      alert('부스 만족도를 선택해주세요.');
+      alert('부스 만족도를 반드시 선택해주세요.');
       return;
     }
     setModalStep(2);
@@ -73,7 +181,13 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
 
   const handleStep2Submit = async () => {
     if (recRating === 0) {
-      alert('추천 만족도를 선택해주세요.');
+      alert('추천 만족도를 반드시 선택해주세요.');
+      return;
+    }
+
+    // 최소 하나의 체크박스가 선택되어야 함
+    if (!isBoothWrongInfo && !isIrrelevant && !isCorrect) {
+      alert('아래 체크박스 중 적어도 하나는 반드시 선택해주세요.');
       return;
     }
 
@@ -173,12 +287,80 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
 
         <div style={{ marginTop: '24px' }}>
           {!hasStarted ? (
-            <button
-              className="btn btn-primary"
-              onClick={handleStartEvaluation}
-            >
-              시작
-            </button>
+            <>
+              {showCamera ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    style={{
+                      width: '100%',
+                      maxWidth: '400px',
+                      borderRadius: '8px',
+                      backgroundColor: '#000'
+                    }}
+                  />
+                  <canvas ref={canvasRef} style={{ display: 'none' }} />
+                  
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button 
+                      onClick={capturePhoto}
+                      className="btn btn-primary"
+                      style={{ fontSize: '16px', padding: '12px 24px' }}
+                    >
+                      📷 촬영하기
+                    </button>
+                    <button 
+                      onClick={cancelCamera}
+                      className="btn"
+                      style={{ fontSize: '16px', padding: '12px 24px' }}
+                    >
+                      취소
+                    </button>
+                  </div>
+                </div>
+              ) : photo ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                  <img 
+                    src={photo} 
+                    alt="촬영된 사진"
+                    style={{
+                      width: '100%',
+                      maxWidth: '400px',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button 
+                      onClick={handleStartEvaluation}
+                      className="btn btn-primary"
+                      disabled={cameraLoading}
+                      style={{ fontSize: '16px', padding: '12px 24px' }}
+                    >
+                      {cameraLoading ? '업로드 중...' : '✅ 확인하고 시작'}
+                    </button>
+                    <button 
+                      onClick={retakePhoto}
+                      className="btn"
+                      disabled={cameraLoading}
+                      style={{ fontSize: '16px', padding: '12px 24px' }}
+                    >
+                      🔄 다시 촬영
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  className="btn btn-primary"
+                  onClick={startCamera}
+                  style={{ fontSize: '16px', padding: '12px 24px' }}
+                >
+                  📷 사진 촬영하고 시작하기
+                </button>
+              )}
+            </>
           ) : !hasEnded ? (
             <button
               className="btn btn-danger"
@@ -233,6 +415,7 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
                     className="btn btn-primary"
                     onClick={handleStep1Next}
                     style={{ flex: 1 }}
+                    disabled={boothRating === 0}
                   >
                     다음
                   </button>
@@ -298,6 +481,7 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
                     className="btn btn-primary"
                     onClick={handleStep2Submit}
                     style={{ flex: 1 }}
+                    disabled={recRating === 0 || (!isBoothWrongInfo && !isIrrelevant && !isCorrect)}
                   >
                     완료
                   </button>
@@ -353,6 +537,18 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
 
         .checkbox-label span {
           flex: 1;
+        }
+
+        .btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          background-color: #ccc !important;
+          color: #666 !important;
+        }
+
+        .btn:disabled:hover {
+          background-color: #ccc !important;
+          color: #666 !important;
         }
       `}</style>
     </div>

@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS "evaluation" (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
   booth_id INTEGER NOT NULL,
+  photo_url TEXT,
   booth_rating INTEGER CHECK (booth_rating >= 1 AND booth_rating <= 5),
   rec_rating INTEGER CHECK (rec_rating >= 1 AND rec_rating <= 5),
   started_at TIMESTAMP WITH TIME ZONE,

@@ -92,6 +92,38 @@ npm run build
 npm run preview
 ```
 
+## Supabase 설정
+
+### 1. 데이터베이스 스키마
+Supabase SQL Editor에서 다음 스크립트를 순서대로 실행:
+
+1. `supabase-schema.sql` - 테이블 생성
+2. `add-photo-url-column.sql` - user 테이블에 photo_url 컬럼 추가
+3. `add-evaluation-photo-url-column.sql` - evaluation 테이블에 photo_url 컬럼 추가
+4. `insert-user-data.sql` 또는 `upsert-user-data.sql` - 사용자 데이터 삽입
+
+### 2. Storage 버킷 생성
+Supabase Dashboard → Storage에서:
+
+1. 새 버킷 생성:
+   - 이름: `user-photos`
+   - Public 버킷으로 설정
+   
+2. 버킷 정책 설정 (Storage → Policies):
+   ```sql
+   -- 모든 사용자가 업로드 가능
+   CREATE POLICY "Enable upload for all users"
+   ON storage.objects FOR INSERT
+   TO public
+   WITH CHECK (bucket_id = 'user-photos');
+   
+   -- 모든 사용자가 읽기 가능
+   CREATE POLICY "Enable read for all users"
+   ON storage.objects FOR SELECT
+   TO public
+   USING (bucket_id = 'user-photos');
+   ```
+
 ## 환경 변수 설정
 
 ### 로컬 개발

@@ -20,6 +20,7 @@ export interface User {
 export interface Evaluation {
   user_id: number;
   booth_id: number;
+  photo_url?: string;
   booth_rating?: number;
   rec_rating?: number;
   started_at?: string;

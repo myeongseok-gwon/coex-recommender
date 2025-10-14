@@ -26,6 +26,39 @@ export const userService = {
     if (error) throw error;
   },
 
+  async uploadPhoto(userId: number, file: File, boothId?: number) {
+    const fileExt = file.name.split('.').pop();
+    const fileName = boothId 
+      ? `user_${userId}_booth_${boothId}_${Date.now()}.${fileExt}`
+      : `user_${userId}_${Date.now()}.${fileExt}`;
+    const filePath = `user-photos/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('user-photos')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('user-photos')
+      .getPublicUrl(filePath);
+
+    // 부스별 사진이 아닌 경우에만 user 테이블의 photo_url 업데이트
+    if (!boothId) {
+      const { error: updateError } = await supabase
+        .from('user')
+        .update({ photo_url: publicUrl })
+        .eq('user_id', userId);
+
+      if (updateError) throw updateError;
+    }
+
+    return publicUrl;
+  },
+
   async updateUserFormData(userId: number, formData: any) {
     const { error } = await supabase
       .from('user')
@@ -74,6 +107,16 @@ export const evaluationService = {
     return data;
   },
 
+  async updateEvaluationPhoto(userId: number, boothId: number, photoUrl: string) {
+    const { error } = await supabase
+      .from('evaluation')
+      .update({ photo_url: photoUrl })
+      .eq('user_id', userId)
+      .eq('booth_id', boothId);
+    
+    if (error) throw error;
+  },
+
   async updateEvaluation(userId: number, boothId: number, updates: any) {
     const { error } = await supabase
       .from('evaluation')
@@ -90,7 +133,7 @@ export const evaluationService = {
       .select('*')
       .eq('user_id', userId)
       .eq('booth_id', boothId)
-      .single();
+      .maybeSingle();
     
     if (error && error.code !== 'PGRST116') throw error;
     return data;
