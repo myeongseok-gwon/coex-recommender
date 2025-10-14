@@ -401,7 +401,7 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
                       checked={isIrrelevant}
                       onChange={(e) => setIsIrrelevant(e.target.checked)}
                     />
-                    <span>저의 관심사와 관련성이 없는 부스가 추천되었습니다.</span>
+                    <span>제 관심사와 관련성 없는 부스입니다.</span>
                   </label>
                   <label className="checkbox-label">
                     <input
@@ -486,6 +486,7 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
           border-radius: 8px;
           display: flex;
           flex-direction: column;
+          align-items: flex-start;
           gap: 12px;
         }
 
