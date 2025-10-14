@@ -48,6 +48,17 @@ export const userService = {
       .eq('user_id', userId);
     
     if (error) throw error;
+  },
+
+  async updateUserRecEval(userId: number, recEval: string) {
+    const { error } = await supabase
+      .from('user')
+      .update({
+        rec_eval: recEval
+      })
+      .eq('user_id', userId);
+    
+    if (error) throw error;
   }
 };
 
@@ -82,6 +93,16 @@ export const evaluationService = {
       .single();
     
     if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  },
+
+  async getAllEvaluations(userId: number) {
+    const { data, error } = await supabase
+      .from('evaluation')
+      .select('*')
+      .eq('user_id', userId);
+    
+    if (error) throw error;
     return data;
   }
 };

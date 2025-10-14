@@ -127,17 +127,24 @@ const App: React.FC = () => {
     }
   };
 
-  const createVisitorInfo = (_user: User, formData: UserFormData): string => {
+  const createVisitorInfo = (user: User, formData: UserFormData): string => {
     let info = `나이: ${formData.age}세\n`;
     info += `성별: ${formData.gender}\n`;
     
-    // if (_user.type.startsWith('many_')) {
-    //   info += `회사명: ${formData.company_name}\n`;
-    //   info += `총 근무 경력: ${formData.work_experience}년\n`;
-    //   info += `전시회 참관 경험: ${formData.expo_experience}회\n`;
-    // }
+    // 관심사 정보 추가 (many 타입일 경우)
+    if (user.type.startsWith('many_') && formData.interests && Object.keys(formData.interests).length > 0) {
+      info += '\n선택한 관심사:\n';
+      for (const [subcategory, items] of Object.entries(formData.interests)) {
+        if (items && items.length > 0) {
+          info += `  ${subcategory}: ${items.join(', ')}\n`;
+        }
+      }
+    }
     
-    info += `기대사항 및 선호도: ${formData.details}`;
+    // 추가 기대사항 또는 자유 입력 내용
+    if (formData.details && formData.details.trim()) {
+      info += `\n${user.type.startsWith('many_') ? '추가 기대사항' : '기대사항 및 선호도'}: ${formData.details}`;
+    }
     
     return info;
   };
@@ -147,6 +154,13 @@ const App: React.FC = () => {
       ...prev,
       selectedBooth: booth,
       currentPage: 'detail'
+    }));
+  };
+
+  const handleUserUpdate = (updatedUser: User) => {
+    setState(prev => ({
+      ...prev,
+      currentUser: updatedUser
     }));
   };
 
@@ -215,6 +229,7 @@ const App: React.FC = () => {
             user={state.currentUser}
             booth={state.selectedBooth}
             onBack={handleBack}
+            onUserUpdate={handleUserUpdate}
           />
         );
       

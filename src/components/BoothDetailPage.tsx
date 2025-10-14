@@ -1,18 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { User, Booth, Evaluation } from '../types';
-import { evaluationService } from '../services/supabase';
+import { evaluationService, userService } from '../services/supabase';
 
 interface BoothDetailPageProps {
   user: User;
   booth: Booth;
   onBack: () => void;
+  onUserUpdate: (user: User) => void;
 }
 
-const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack }) => {
+const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, onUserUpdate }) => {
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [loading, setLoading] = useState(true);
   const [showRatingModal, setShowRatingModal] = useState(false);
-  const [rating, setRating] = useState(0);
+  const [modalStep, setModalStep] = useState<1 | 2>(1);
+  
+  // 평가 상태
+  const [boothRating, setBoothRating] = useState(0);
+  const [recRating, setRecRating] = useState(0);
+  const [isBoothWrongInfo, setIsBoothWrongInfo] = useState(false);
+  const [isIrrelevant, setIsIrrelevant] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
 
   useEffect(() => {
     checkEvaluation();
@@ -47,23 +55,64 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack }
 
   const handleEndEvaluation = () => {
     setShowRatingModal(true);
+    setModalStep(1);
+    setBoothRating(0);
+    setRecRating(0);
+    setIsBoothWrongInfo(false);
+    setIsIrrelevant(false);
+    setIsCorrect(false);
   };
 
-  const handleRatingSubmit = async () => {
-    if (rating === 0) {
-      alert('평점을 선택해주세요.');
+  const handleStep1Next = () => {
+    if (boothRating === 0) {
+      alert('부스 만족도를 선택해주세요.');
+      return;
+    }
+    setModalStep(2);
+  };
+
+  const handleStep2Submit = async () => {
+    if (recRating === 0) {
+      alert('추천 만족도를 선택해주세요.');
       return;
     }
 
     try {
+      // evaluation 테이블 업데이트
       await evaluationService.updateEvaluation(user.user_id, booth.id, {
-        rating: rating,
+        booth_rating: boothRating,
+        rec_rating: recRating,
+        is_booth_wrong_info: isBoothWrongInfo,
+        is_irrelevant: isIrrelevant,
+        is_correct: isCorrect,
         ended_at: new Date().toISOString()
       });
       
+      // 모든 평가 데이터를 가져와서 rec_eval 업데이트
+      try {
+        const allEvaluations = await evaluationService.getAllEvaluations(user.user_id);
+        const recEvalArray = allEvaluations.map((ev: any) => ({
+          id: ev.booth_id,
+          booth_rating: ev.booth_rating,
+          rec_rating: ev.rec_rating
+        }));
+        await userService.updateUserRecEval(user.user_id, JSON.stringify(recEvalArray));
+        
+        // 업데이트된 user 정보 가져오기
+        const updatedUser = await userService.getUser(user.user_id);
+        onUserUpdate(updatedUser as User);
+      } catch (evalError) {
+        console.warn('rec_eval 업데이트 실패 (컬럼이 아직 없을 수 있음):', evalError);
+        // rec_eval 업데이트는 실패해도 평가는 정상적으로 완료됨
+      }
+      
       setEvaluation(prev => prev ? {
         ...prev,
-        rating: rating,
+        booth_rating: boothRating,
+        rec_rating: recRating,
+        is_booth_wrong_info: isBoothWrongInfo,
+        is_irrelevant: isIrrelevant,
+        is_correct: isCorrect,
         ended_at: new Date().toISOString()
       } : null);
       
@@ -73,6 +122,11 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack }
       console.error('평가 완료 오류:', error);
       alert('평가를 완료할 수 없습니다. 다시 시도해주세요.');
     }
+  };
+
+  const closeModal = () => {
+    setShowRatingModal(false);
+    setModalStep(1);
   };
 
   if (loading) {
@@ -134,7 +188,10 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack }
             </button>
           ) : (
             <div style={{ textAlign: 'center', color: '#28a745' }}>
-              <p>평가 완료 (평점: {evaluation?.rating}점)</p>
+              <p>평가 완료</p>
+              <p style={{ fontSize: '14px', marginTop: '8px' }}>
+                부스 평점: {evaluation?.booth_rating}점 | 추천 평점: {evaluation?.rec_rating}점
+              </p>
             </div>
           )}
         </div>
@@ -143,40 +200,161 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack }
       {showRatingModal && (
         <div className="rating-modal">
           <div className="rating-modal-content">
-            <h3>부스 평가</h3>
-            <p>이 부스에 대한 만족도를 평가해주세요</p>
-            
-            <div className="rating-stars">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <span
-                  key={star}
-                  className={`star ${star <= rating ? 'active' : ''}`}
-                  onClick={() => setRating(star)}
-                >
-                  ★
-                </span>
-              ))}
-            </div>
+            {modalStep === 1 ? (
+              <>
+                <h3>부스 만족도 평가</h3>
+                <p>부스가 얼마나 만족스러웠나요?</p>
+                
+                <div className="rating-container">
+                  <span className="rating-label-left">매우 불만족</span>
+                  <div className="rating-stars">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <span
+                        key={star}
+                        className={`star ${star <= boothRating ? 'active' : ''}`}
+                        onClick={() => setBoothRating(star)}
+                      >
+                        ★
+                      </span>
+                    ))}
+                  </div>
+                  <span className="rating-label-right">매우 만족</span>
+                </div>
 
-            <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowRatingModal(false)}
-                style={{ flex: 1 }}
-              >
-                취소
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleRatingSubmit}
-                style={{ flex: 1 }}
-              >
-                제출
-              </button>
-            </div>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={closeModal}
+                    style={{ flex: 1 }}
+                  >
+                    취소
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleStep1Next}
+                    style={{ flex: 1 }}
+                  >
+                    다음
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3>추천 만족도 평가</h3>
+                <p>추천이 얼마나 만족스러웠나요?</p>
+                
+                <div className="rating-container">
+                  <span className="rating-label-left">매우 불만족</span>
+                  <div className="rating-stars">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <span
+                        key={star}
+                        className={`star ${star <= recRating ? 'active' : ''}`}
+                        onClick={() => setRecRating(star)}
+                      >
+                        ★
+                      </span>
+                    ))}
+                  </div>
+                  <span className="rating-label-right">매우 만족</span>
+                </div>
+
+                <div className="checkbox-container">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={isBoothWrongInfo}
+                      onChange={(e) => setIsBoothWrongInfo(e.target.checked)}
+                    />
+                    <span>잘못된 부스 정보가 포함되어있습니다.</span>
+                  </label>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={isIrrelevant}
+                      onChange={(e) => setIsIrrelevant(e.target.checked)}
+                    />
+                    <span>저의 관심사와 관련성이 없는 부스가 추천되었습니다.</span>
+                  </label>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={isCorrect}
+                      onChange={(e) => setIsCorrect(e.target.checked)}
+                    />
+                    <span>해당 사항 없습니다.</span>
+                  </label>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => setModalStep(1)}
+                    style={{ flex: 1 }}
+                  >
+                    이전
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleStep2Submit}
+                    style={{ flex: 1 }}
+                  >
+                    완료
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
+
+      <style>{`
+        .rating-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          margin: 24px 0;
+        }
+
+        .rating-label-left,
+        .rating-label-right {
+          font-size: 12px;
+          color: #666;
+          white-space: nowrap;
+        }
+
+        .checkbox-container {
+          margin-top: 20px;
+          padding: 16px;
+          background: #f8f9fa;
+          border-radius: 8px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .checkbox-label {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          cursor: pointer;
+          font-size: 14px;
+          line-height: 1.5;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+          margin-top: 3px;
+          cursor: pointer;
+          width: 18px;
+          height: 18px;
+          flex-shrink: 0;
+        }
+
+        .checkbox-label span {
+          flex: 1;
+        }
+      `}</style>
     </div>
   );
 };
