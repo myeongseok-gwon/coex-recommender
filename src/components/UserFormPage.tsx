@@ -95,7 +95,11 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onBack }) =
   });
 
   const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
-  const isManyType = user.type.startsWith('many_');
+  
+  // 유저 타입에서 언더바 사이의 단어 추출
+  const typeMatch = user.type.match(/_(\w+)_/);
+  const typeKeyword = typeMatch ? typeMatch[1] : '';
+  const isFewType = typeKeyword === 'few';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,19 +110,17 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onBack }) =
       return;
     }
 
-    if (isManyType) {
-      // many 타입은 관심사 선택 필수
-      const hasInterests = formData.interests && Object.keys(formData.interests).length > 0;
-      if (!hasInterests && !formData.details) {
-        alert('관심사를 선택하거나 기대사항을 입력해주세요.');
-        return;
-      }
-    } else {
-      // few 타입은 텍스트 입력 필수
-      if (!formData.details) {
-        alert('기대사항을 입력해주세요.');
-        return;
-      }
+    // 관심사 검증 (항상 필수)
+    const hasInterests = formData.interests && Object.keys(formData.interests).length > 0;
+    if (!hasInterests) {
+      alert('관심사를 선택해주세요.');
+      return;
+    }
+
+    // details 검증 (few 타입이 아닐 경우에만)
+    if (!isFewType && !formData.details) {
+      alert('기대사항을 입력해주세요.');
+      return;
     }
 
     onSubmit(formData);
@@ -266,7 +268,7 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onBack }) =
           </div>
         </div>
 
-        {isManyType && (
+        {!isFewType && (
           <div className="form-group">
             <label htmlFor="details" className="form-label">
               오늘 전시회에 대한 기대사항과 선호도 *

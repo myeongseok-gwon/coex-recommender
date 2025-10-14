@@ -188,7 +188,7 @@ const App: React.FC = () => {
     if (typeKeyword !== 'few' && formData.details && formData.details.trim()) {
       info += `\n기대사항 및 선호도: ${formData.details}`;
     }
-    
+    console.log(info);
     return info;
   };
 
