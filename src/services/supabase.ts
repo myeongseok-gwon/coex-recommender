@@ -145,6 +145,59 @@ export const userService = {
       .eq('user_id', userId);
     
     if (error) throw error;
+  },
+
+  async uploadPathImages(userId: number, compositeBlob: Blob, drawingBlob: Blob) {
+    const timestamp = Date.now();
+    
+    // 합성 이미지 업로드 (지도 + 경로)
+    const compositeFileName = `path_composite_user_${userId}_${timestamp}.png`;
+    const compositeFilePath = `path-images/${compositeFileName}`;
+
+    const { error: compositeUploadError } = await supabase.storage
+      .from('user-photos')
+      .upload(compositeFilePath, compositeBlob, {
+        contentType: 'image/png',
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (compositeUploadError) throw compositeUploadError;
+
+    const { data: { publicUrl: compositeUrl } } = supabase.storage
+      .from('user-photos')
+      .getPublicUrl(compositeFilePath);
+
+    // 경로만 있는 이미지 업로드
+    const drawingFileName = `path_drawing_user_${userId}_${timestamp}.png`;
+    const drawingFilePath = `path-images/${drawingFileName}`;
+
+    const { error: drawingUploadError } = await supabase.storage
+      .from('user-photos')
+      .upload(drawingFilePath, drawingBlob, {
+        contentType: 'image/png',
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (drawingUploadError) throw drawingUploadError;
+
+    const { data: { publicUrl: drawingUrl } } = supabase.storage
+      .from('user-photos')
+      .getPublicUrl(drawingFilePath);
+
+    // DB 업데이트
+    const { error: updateError } = await supabase
+      .from('user')
+      .update({ 
+        path_image_url: compositeUrl,
+        path_drawing_url: drawingUrl
+      })
+      .eq('user_id', userId);
+
+    if (updateError) throw updateError;
+
+    return { compositeUrl, drawingUrl };
   }
 };
 

@@ -75,7 +75,7 @@ def test_pdf_extraction(pdf_path):
 
 def main():
     # PDF 파일 경로
-    pdf_path = Path(__file__).parent / "2025 푸드위크 코리아_A,B홀_부스배치도_memo.pdf"
+    pdf_path = Path(__file__).parent / "2025_map.pdf"
     
     if not pdf_path.exists():
         print(f"❌ PDF 파일을 찾을 수 없습니다: {pdf_path}")

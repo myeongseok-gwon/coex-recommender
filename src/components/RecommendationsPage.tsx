@@ -242,7 +242,7 @@ const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
           background: #1976d2;
           color: white;
           padding: 16px 24px;
-          margin: -20px -20px 20px -20px;
+          margin: 0 0 20px 0;
           border-bottom: 3px solid #1565c0;
         }
 

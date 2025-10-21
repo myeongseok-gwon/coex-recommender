@@ -12,7 +12,7 @@ const LoadingPage: React.FC = () => {
         <div className="spinner"></div>
       </div>
 
-      <div style={{ textAlign: 'center', color: '#666', marginTop: '20px' }}>
+      <div style={{ textAlign: 'center', color: '#666', marginTop: '20px', padding: '0 20px' }}>
         <p>잠시만 기다려주세요</p>
       </div>
     </div>

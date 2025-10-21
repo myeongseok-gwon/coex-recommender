@@ -272,7 +272,7 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onNext, onB
           background: #1976d2;
           color: white;
           padding: 16px 24px;
-          margin: -20px -20px 20px -20px;
+          margin: 0 0 20px 0;
           border-bottom: 3px solid #1565c0;
         }
 
@@ -296,6 +296,7 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onNext, onB
           border: 1px solid #e0e0e0;
           border-radius: 8px;
           overflow: hidden;
+          margin: 0 20px;
         }
 
         .interest-category {

@@ -47,7 +47,7 @@ def convert_pdf_to_png(pdf_path, output_path, dpi=300):
 def main():
     # 파일 경로
     script_dir = Path(__file__).parent
-    pdf_path = script_dir / "2025 푸드위크 코리아_A,B홀_부스배치도_memo.pdf"
+    pdf_path = script_dir / "2025_map.pdf"
     
     # 출력 경로 (public 폴더와 dist 폴더 모두)
     public_path = script_dir.parent / "public" / "2025_map.png"

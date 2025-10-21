@@ -221,7 +221,7 @@ const FollowUpQuestionsPage: React.FC<FollowUpQuestionsPageProps> = ({
           background: #1976d2;
           color: white;
           padding: 16px 24px;
-          margin: -20px -20px 20px -20px;
+          margin: 0 0 20px 0;
           border-bottom: 3px solid #1565c0;
         }
 
@@ -237,7 +237,7 @@ const FollowUpQuestionsPage: React.FC<FollowUpQuestionsPageProps> = ({
         }
 
         .summary-section {
-          margin-bottom: 2rem;
+          margin: 0 20px 2rem 20px;
           animation: fadeIn 0.3s ease-in;
         }
 
@@ -272,6 +272,7 @@ const FollowUpQuestionsPage: React.FC<FollowUpQuestionsPageProps> = ({
           height: calc(100vh - 300px);
           min-height: 500px;
           position: relative;
+          padding: 0 20px;
         }
 
         .progress-bar {

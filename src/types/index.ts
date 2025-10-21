@@ -17,6 +17,8 @@ export interface User {
   final_rating?: number;
   final_pros?: string;
   final_cons?: string;
+  path_image_url?: string;
+  path_drawing_url?: string;
 }
 
 export interface Evaluation {

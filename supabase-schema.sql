@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS "user" (
   final_rating INTEGER CHECK (final_rating >= 1 AND final_rating <= 5),
   final_pros TEXT,
   final_cons TEXT,
+  path_image_url TEXT,
+  path_drawing_url TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -27,7 +29,7 @@ CREATE TABLE IF NOT EXISTS "user" (
 CREATE TABLE IF NOT EXISTS "evaluation" (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
-  booth_id INTEGER NOT NULL,
+  booth_id VARCHAR(10) NOT NULL,
   photo_url TEXT,
   booth_rating INTEGER CHECK (booth_rating >= 1 AND booth_rating <= 5),
   rec_rating INTEGER CHECK (rec_rating >= 1 AND rec_rating <= 5),
