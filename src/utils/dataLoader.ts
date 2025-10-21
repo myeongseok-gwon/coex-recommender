@@ -29,22 +29,27 @@ export const loadBoothData = async (): Promise<any[]> => {
 
 export const loadUserData = (): any[] => {
   // user.csv 데이터를 하드코딩 (실제로는 CSV 파싱 라이브러리 사용)
+  // Type A: Less questions, feed all to LLM
+  // Type B: Many questions, feed limited to LLM
+  // Type C: Many questions, feed all to LLM
   return [
-    { user_id: 1, type: 'many_personal' },
-    { user_id: 2, type: 'many_basic' },
-    { user_id: 3, type: 'few_personal' },
-    { user_id: 4, type: 'few_basic' },
-    { user_id: 5, type: 'many_personal' },
-    { user_id: 6, type: 'many_basic' },
-    { user_id: 7, type: 'few_personal' },
-    { user_id: 8, type: 'few_basic' },
-    { user_id: 9, type: 'many_personal' },
-    { user_id: 10, type: 'many_basic' },
-    { user_id: 11, type: 'few_personal' },
-    { user_id: 12, type: 'few_basic' },
-    { user_id: 13, type: 'many_personal' },
-    { user_id: 14, type: 'many_basic' },
-    { user_id: 15, type: 'few_personal' },
-    { user_id: 16, type: 'few_basic' }
+    { user_id: 1, type: 'A' },
+    { user_id: 2, type: 'B' },
+    { user_id: 3, type: 'C' },
+    { user_id: 4, type: 'A' },
+    { user_id: 5, type: 'B' },
+    { user_id: 6, type: 'C' },
+    { user_id: 7, type: 'A' },
+    { user_id: 8, type: 'B' },
+    { user_id: 9, type: 'C' },
+    { user_id: 10, type: 'A' },
+    { user_id: 11, type: 'B' },
+    { user_id: 12, type: 'C' },
+    { user_id: 13, type: 'A' },
+    { user_id: 14, type: 'B' },
+    { user_id: 15, type: 'C' },
+    { user_id: 16, type: 'A' },
+    { user_id: 17, type: 'B' },
+    { user_id: 18, type: 'C' }
   ];
 };

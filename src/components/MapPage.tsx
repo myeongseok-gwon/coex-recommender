@@ -8,11 +8,14 @@ interface MapPageProps {
   onBack: () => void;
 }
 
+const DISPLAY_COUNT = 10;
+
 const MapPage: React.FC<MapPageProps> = ({ user, recommendations, onBack }) => {
   const [positions, setPositions] = useState<BoothPosition[]>([]);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [currentBoothId, setCurrentBoothId] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [displayedRecommendations, setDisplayedRecommendations] = useState<Recommendation[]>([]);
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -26,6 +29,36 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations, onBack }) => {
   useEffect(() => {
     loadPositions();
   }, []);
+
+  // displayedRecommendations 계산 (RecommendationsPage와 동일한 로직)
+  useEffect(() => {
+    console.log('=== MapPage: displayedRecommendations 계산 ===');
+    console.log('받은 추천 개수:', recommendations.length);
+    
+    // 삭제된 부스 ID 목록 가져오기
+    const deletedBoothIds = new Set<string>();
+    if (user.rec_eval) {
+      try {
+        const evalArray = JSON.parse(user.rec_eval);
+        evalArray.forEach((item: any) => {
+          if (item.is_deleted) {
+            deletedBoothIds.add(item.id);
+          }
+        });
+      } catch (e) {
+        console.error('rec_eval 파싱 오류:', e);
+      }
+    }
+
+    // 삭제되지 않은 추천만 필터링
+    const activeRecommendations = recommendations.filter(rec => !deletedBoothIds.has(rec.id));
+    console.log('삭제되지 않은 추천 개수:', activeRecommendations.length);
+    
+    // 처음 10개만 표시
+    const displayed = activeRecommendations.slice(0, DISPLAY_COUNT);
+    setDisplayedRecommendations(displayed);
+    console.log('지도에 표시할 추천 개수:', displayed.length);
+  }, [recommendations, user.rec_eval]);
 
   const loadPositions = async () => {
     try {
@@ -42,9 +75,9 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations, onBack }) => {
   const handleImageClick = async (e: React.MouseEvent<HTMLImageElement>) => {
     if (!isAdminMode) return;
 
-    const boothId = parseInt(currentBoothId);
-    if (!boothId || isNaN(boothId)) {
-      alert('부스 ID를 입력해주세요.');
+    const boothId = currentBoothId.trim();
+    if (!boothId) {
+      alert('부스 ID를 입력해주세요 (예: A1234, B5678).');
       return;
     }
 
@@ -63,7 +96,7 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations, onBack }) => {
     }
   };
 
-  const handleDeletePosition = async (boothId: number) => {
+  const handleDeletePosition = async (boothId: string) => {
     if (!window.confirm(`부스 ${boothId}의 위치를 삭제하시겠습니까?`)) return;
 
     try {
@@ -76,15 +109,15 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations, onBack }) => {
     }
   };
 
-  // 추천된 부스 ID 목록
-  const recommendedBoothIds = new Set(recommendations.map(r => r.id));
+  // 표시할 추천 부스 ID 목록 (displayedRecommendations만)
+  const displayedBoothIds = new Set(displayedRecommendations.map(r => r.id));
 
   // 평가 완료 여부 확인 함수
-  const isEvaluated = (boothId: number): boolean => {
+  const isEvaluated = (boothId: string): boolean => {
     if (!user.rec_eval) return false;
     try {
       const evalArray = JSON.parse(user.rec_eval);
-      const evaluation = evalArray.find((item: any) => item.id === boothId);
+      const evaluation = evalArray.find((item: any) => item.id === boothId && !item.is_deleted);
       return evaluation && (evaluation.booth_rating || evaluation.rec_rating);
     } catch (e) {
       return false;
@@ -92,9 +125,10 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations, onBack }) => {
   };
 
   // 표시할 부스 위치 필터링
+  // Admin 모드: 모든 부스, 일반 모드: displayedRecommendations만
   const displayPositions = isAdminMode
     ? positions
-    : positions.filter(pos => recommendedBoothIds.has(pos.booth_id));
+    : positions.filter(pos => displayedBoothIds.has(pos.booth_id));
 
   return (
     <div className="map-container">
@@ -117,10 +151,10 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations, onBack }) => {
             <label htmlFor="boothId">부스 ID:</label>
             <input
               id="boothId"
-              type="number"
+              type="text"
               value={currentBoothId}
-              onChange={(e) => setCurrentBoothId(e.target.value)}
-              placeholder="부스 ID 입력"
+              onChange={(e) => setCurrentBoothId(e.target.value.toUpperCase())}
+              placeholder="예: A1234, B5678"
               className="booth-id-input"
             />
             <span className="instruction">
@@ -171,8 +205,8 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations, onBack }) => {
           <div className="map-image-container">
             <img
               ref={imageRef}
-              src="/2024_map.png"
-              alt="COEX 2024 Map"
+              src="/2025_map.png"
+              alt="COEX 2025 Map"
               className={`map-image ${isAdminMode ? 'clickable' : ''}`}
               onClick={handleImageClick}
             />

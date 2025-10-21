@@ -4,8 +4,11 @@ import { User, UserFormData } from '../types';
 interface UserFormPageProps {
   user: User;
   onSubmit: (formData: UserFormData) => void;
+  onNext: (formData: UserFormData) => void;
   onBack: () => void;
 }
+
+// 관심사 데이터 구조
 
 // 관심사 데이터 구조
 const INTEREST_CATEGORIES = {
@@ -14,7 +17,6 @@ const INTEREST_CATEGORIES = {
     subcategories: {
       "과일/채소/곡물": ["과일", "채소", "쌀/잡곡", "견과류"],
       "육류/수산물": ["소고기", "돼지고기", "닭고기", "해산물", "수산가공품"],
-      "유기농/친환경": ["유기농 인증", "무농약", "로컬푸드", "친환경 인증"]
     }
   },
   "가공식품": {
@@ -22,15 +24,14 @@ const INTEREST_CATEGORIES = {
     subcategories: {
       "간편식/HMR": ["냉동식품", "냉장식품", "즉석밥", "도시락", "레토르트"],
       "포장식품": ["통조림", "인스턴트", "면류", "장류"],
-      "조미료/소스": ["양념", "드레싱", "식용유", "소스", "향신료"]
     }
   },
   "베이커리 & 디저트": {
     icon: "🍰",
     subcategories: {
-      "빵/베이커리": ["식빵", "페이스트리", "건강빵", "베이글", "제과제빵 재료"],
-      "케이크/디저트": ["케이크", "아이스크림", "푸딩", "젤리", "초콜릿"],
-      "과자/스낵": ["과자", "쿠키", "스낵", "캔디", "견과류 스낵"]
+      "빵": ["식빵", "페이스트리", "건강빵", "베이글", "제과제빵 재료"],
+      "디저트": ["케이크", "아이스크림", "푸딩", "젤리", "초콜릿"],
+      "스낵": ["과자", "쿠키", "견과류"]
     }
   },
   "유제품 & 음료": {
@@ -39,34 +40,24 @@ const INTEREST_CATEGORIES = {
       "유제품": ["우유", "치즈", "요거트", "버터", "크림"],
       "커피/차": ["원두", "인스턴트 커피", "녹차", "홍차", "허브티", "전통차"],
       "음료": ["주스", "탄산음료", "기능성 음료", "생수", "두유"],
-      "주류/와인": ["와인", "맥주", "전통주", "위스키", "칵테일"]
     }
   },
+  "주류": {
+      icon: "🍷",
+      subcategories: {
+        "주류": ["맥주", "와인", "전통주", "위스키"]
+      }
+    },
+
   "건강 & 웰빙": {
     icon: "🌿",
     subcategories: {
       "건강기능식품": ["비타민", "영양제", "프로틴", "건강즙", "홍삼"],
-      "이너뷰티": ["콜라겐", "발효식품", "효소", "저분자", "뷰티푸드"],
       "시니어케어": ["고령친화식품", "연하식", "영양보충식", "저작용이식품"],
-      "특수식이": ["저염식", "저당식", "글루텐프리", "비건", "다이어트식품"]
+      "유기농/친환경": ["유기농 인증", "친환경 인증"]
     }
   },
-  "프리미엄 & 특수식품": {
-    icon: "⭐",
-    subcategories: {
-      "고메/스페셜티": ["특급 식재료", "장인 제품", "한정판", "시그니처"],
-      "수입식품": ["유럽", "미국", "일본", "동남아", "중남미", "호주"],
-      "프리미엄 식재료": ["트러플", "캐비아", "한우", "특산품", "명품 농산물"]
-    }
-  },
-  "주방 & 리빙": {
-    icon: "🍳",
-    subcategories: {
-      "스마트 주방가전": ["에어프라이어", "블렌더", "커피머신", "전기밥솥", "IoT 가전"],
-      "조리도구/용품": ["냄비/팬", "칼/도마", "보관용기", "식기", "조리도구"],
-      "푸드 라이프스타일": ["테이블웨어", "인테리어", "캠핑용품", "파티용품"]
-    }
-  },
+  
   "맛 선호도": {
     icon: "😋",
     subcategories: {
@@ -78,28 +69,24 @@ const INTEREST_CATEGORIES = {
   "라이프스타일": {
     icon: "🏃",
     subcategories: {
-      "식이 스타일": ["채식주의", "비건", "키토제닉/저탄수", "저염식", "저당식", "고단백", "할랄", "코셔"],
-      "알레르기 대응": ["글루텐 프리", "유제품 프리", "견과류 프리", "계란 프리", "콩 프리", "해산물 프리"],
-      "관심 키워드": ["다이어트/체중관리 ⚖️", "운동/피트니스 💪", "홈쿡/요리 👨‍🍳", "캠핑/아웃도어 🏕️", "와인/페어링 🍷", "디저트/카페 ☕", "키즈/이유식 👶", "반려동물 식품 🐾", "밀프렙/도시락 🍱", "베이킹/제과제빵 🧁"],
-      "원산지 선호": ["국내산", "로컬푸드", "유럽산", "미국산", "일본산", "동남아산", "호주/뉴질랜드"]
+      "식이 스타일": ["채식주의", "비건", "저탄수", "저염식", "저당식", "고단백"],
+      "관심 키워드": ["다이어트/체중관리 ⚖️", "운동/피트니스 💪", "홈쿡/요리 👨‍🍳", "캠핑/아웃도어 🏕️", "와인/페어링 🍷", "디저트/카페 ☕", "키즈/이유식 👶", "반려동물 식품 🐾", "밀프렙/도시락 🍱", "베이킹/제과제빵 🧁", "고메/스페셜티 ⭐"],
     }
   }
 };
 
-const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onBack }) => {
+const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onNext, onBack }) => {
   const [formData, setFormData] = useState<UserFormData>({
     age: 0,
     gender: '',
-    interests: {},
-    details: ''
+    interests: {}
   });
 
   const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
   
-  // 유저 타입에서 언더바 사이의 단어 추출
-  const typeMatch = user.type.match(/_(\w+)_/);
-  const typeKeyword = typeMatch ? typeMatch[1] : '';
-  const isFewType = typeKeyword === 'few';
+  // Type A는 simplified form (less questions)
+  // Type B, C는 full form (many questions)
+  const isTypeA = user.type === 'A';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,13 +104,12 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onBack }) =
       return;
     }
 
-    // details 검증 (few 타입이 아닐 경우에만)
-    if (!isFewType && !formData.details) {
-      alert('기대사항을 입력해주세요.');
-      return;
+    // Type A는 바로 추천, Type B/C는 다음 페이지로
+    if (isTypeA) {
+      onSubmit(formData);
+    } else {
+      onNext(formData);
     }
-
-    onSubmit(formData);
   };
 
   const handleInputChange = (field: keyof UserFormData, value: string | number) => {
@@ -230,7 +216,8 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onBack }) =
           </p>
           
           <div className="interests-container">
-            {Object.entries(INTEREST_CATEGORIES).map(([category, data]) => (
+            {Object.entries(INTEREST_CATEGORIES)
+              .map(([category, data]) => (
               <div key={category} className="interest-category">
                 <button
                   type="button"
@@ -248,16 +235,20 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onBack }) =
                       <div key={subcategory} className="subcategory">
                         <div className="subcategory-title">{subcategory}</div>
                         <div className="items-grid">
-                          {items.map((item) => (
-                            <label key={item} className="checkbox-item">
-                              <input
-                                type="checkbox"
-                                checked={isItemSelected(subcategory, item)}
-                                onChange={() => handleInterestToggle(subcategory, item)}
-                              />
-                              <span>{item}</span>
-                            </label>
-                          ))}
+                          {items.map((item) => {
+                            const selected = isItemSelected(subcategory, item);
+                            return (
+                              <button
+                                key={item}
+                                type="button"
+                                className={`chip ${selected ? 'selected' : ''}`}
+                                aria-pressed={selected}
+                                onClick={() => handleInterestToggle(subcategory, item)}
+                              >
+                                {item}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     ))}
@@ -268,25 +259,8 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onBack }) =
           </div>
         </div>
 
-        {!isFewType && (
-          <div className="form-group">
-            <label htmlFor="details" className="form-label">
-              오늘 전시회에 대한 기대사항과 선호도 *
-            </label>
-            <textarea
-              id="details"
-              className="form-textarea"
-              value={formData.details}
-              onChange={(e) => handleInputChange('details', e.target.value)}
-              placeholder="오늘 전시회에서 무엇을 기대하시나요? 어떤 분야에 관심이 있으신가요?"
-              required
-              rows={6}
-            />
-          </div>
-        )}
-
         <button type="submit" className="btn btn-primary">
-          추천 받기
+          {isTypeA ? '추천 받기' : '다음'}
         </button>
       </form>
 
@@ -390,34 +364,41 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onBack }) =
 
         .items-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
           gap: 8px;
         }
 
-        .checkbox-item {
-          display: flex;
+        .chip {
+          display: inline-flex;
           align-items: center;
-          gap: 8px;
+          justify-content: center;
           padding: 8px 12px;
-          border: 1px solid #ddd;
-          border-radius: 6px;
-          cursor: pointer;
-          transition: all 0.2s;
+          border-radius: 999px;
+          border: 1px solid #d0d7de;
+          background: #fff;
+          color: #24292f;
           font-size: 0.9rem;
+          line-height: 1;
+          cursor: pointer;
+          transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s;
+          box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
         }
 
-        .checkbox-item:hover {
-          background: #f5f5f5;
+        .chip:hover {
+          background: #f6f8fa;
           border-color: #1976d2;
         }
 
-        .checkbox-item input[type="checkbox"] {
-          cursor: pointer;
+        .chip.selected {
+          background: #e3f2fd;
+          border-color: #1976d2;
+          color: #0d47a1;
+          font-weight: 600;
         }
 
-        .checkbox-item input[type="checkbox"]:checked + span {
-          color: #1976d2;
-          font-weight: 500;
+        .chip:focus {
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.3);
         }
       `}</style>
     </div>

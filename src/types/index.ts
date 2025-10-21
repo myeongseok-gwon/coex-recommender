@@ -1,10 +1,12 @@
 export interface User {
   user_id: number;
-  type: 'many_personal' | 'few_personal' | 'many_basic' | 'few_basic';
+  type: 'A' | 'B' | 'C';
   age?: number;
   gender?: string;
   interests?: Record<string, string[]>;
   details?: string;
+  followup_questions?: string;
+  followup_answers?: string;
   started_at?: string;
   ended_at?: string;
   recommended_at?: string;
@@ -19,7 +21,7 @@ export interface User {
 
 export interface Evaluation {
   user_id: number;
-  booth_id: number;
+  booth_id: string; // A1234, B5678 등의 문자열 형식
   photo_url?: string;
   booth_rating?: number;
   rec_rating?: number;
@@ -33,7 +35,7 @@ export interface Evaluation {
 }
 
 export interface Booth {
-  id: number;
+  id: string; // A1234, B5678 등의 문자열 형식
   company_name_kor: string;
   category: string | null;
   company_description: string;
@@ -42,7 +44,7 @@ export interface Booth {
 }
 
 export interface Recommendation {
-  id: number;
+  id: string; // A1234, B5678 등의 문자열 형식
   rationale: string;
 }
 
@@ -50,11 +52,10 @@ export interface UserFormData {
   age: number;
   gender: string;
   interests?: Record<string, string[]>;
-  details: string;
 }
 
 export interface BoothPosition {
-  booth_id: number;
+  booth_id: string; // A1234, B5678 등의 문자열 형식
   x: number; // 0-1 사이의 상대적 x 좌표
   y: number; // 0-1 사이의 상대적 y 좌표
   created_at?: string;
@@ -63,9 +64,10 @@ export interface BoothPosition {
 
 export interface AppState {
   currentUser: User | null;
-  currentPage: 'landing' | 'form' | 'loading' | 'recommendations' | 'detail' | 'map' | 'survey' | 'complete';
+  currentPage: 'landing' | 'form' | 'followup' | 'loading' | 'recommendations' | 'detail' | 'map' | 'survey' | 'complete';
   recommendations: Recommendation[];
   selectedBooth: Booth | null;
   boothData: Booth[];
   evaluation: Evaluation | null;
+  userFormData?: UserFormData;
 }

@@ -48,10 +48,11 @@ npm run dev
 
 ## 사용자 타입
 
-- **many_personal**: 상세한 개인 정보 + rationale 기반 추천
-- **few_personal**: 기본 개인 정보 + rationale 기반 추천
-- **many_basic**: 상세한 개인 정보 + company_description 기반 추천
-- **few_basic**: 기본 개인 정보 + company_description 기반 추천
+- **Type A**: Less questions (simplified form), everyone provides rationale, feed all to LLM (few_few)
+- **Type B**: Many questions (full form), everyone provides rationale, feed limited context to LLM (many_few)
+- **Type C**: Many questions (full form), everyone provides rationale, feed all context to LLM (many_many)
+
+모든 타입의 사용자는 이제 전시회에 대한 기대사항과 선호도(rationale)를 필수로 입력해야 합니다.
 
 ## 데이터베이스 스키마
 
@@ -112,17 +113,19 @@ src/
 
 ### 2. 사용자 정보 입력
 - 사용자 타입에 따른 차별화된 폼
-- many_ 타입: 추가 정보 (회사명, 경력, 전시회 경험) 입력
-- few_ 타입: 기본 정보만 입력
+- Type A: 주요 카테고리만 표시 (신선식품, 가공식품, 베이커리 & 디저트)
+- Type B, C: 모든 카테고리 표시 (신선식품, 가공식품, 베이커리 & 디저트, 유제품 & 음료, 주류, 건강 & 웰빙, 맛 선호도, 라이프스타일)
+- 모든 타입: 기대사항 및 선호도 입력 필수 (최소 50자)
 
 ### 3. AI 추천
 - Google Gemini API를 사용한 부스 추천
 - 사용자 정보를 기반으로 한 맞춤형 추천
+- Type B는 제한된 컨텍스트만 LLM에 전달
 - 추천 결과를 데이터베이스에 저장
 
 ### 4. 추천 결과
-- personal 타입: rationale 기반 설명
-- basic 타입: company_description 기반 설명
+- 모든 추천에 rationale 포함
+- 사용자의 관심사와 기대사항에 맞춘 설명 제공
 
 ### 5. 부스 상세 및 평가
 - 부스 상세 정보 표시

@@ -23,14 +23,17 @@ const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
   onNavigateToMap,
   onNavigateToSurvey
 }) => {
-  const isPersonalType = user.type.includes('personal');
   const [displayedRecommendations, setDisplayedRecommendations] = useState<Recommendation[]>([]);
   const [candidateRecommendations, setCandidateRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    console.log('=== RecommendationsPage useEffect ===');
+    console.log('받은 추천 개수:', recommendations.length);
+    console.log('받은 추천 데이터:', recommendations);
+    
     // 삭제된 부스 ID 목록 가져오기
-    const deletedBoothIds = new Set<number>();
+    const deletedBoothIds = new Set<string>();
     if (user.rec_eval) {
       try {
         const evalArray = JSON.parse(user.rec_eval);
@@ -46,17 +49,20 @@ const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
 
     // 삭제되지 않은 추천만 필터링
     const activeRecommendations = recommendations.filter(rec => !deletedBoothIds.has(rec.id));
+    console.log('삭제되지 않은 추천 개수:', activeRecommendations.length);
     
     // 초기 설정: 처음 10개는 표시, 나머지는 후보
     setDisplayedRecommendations(activeRecommendations.slice(0, DISPLAY_COUNT));
     setCandidateRecommendations(activeRecommendations.slice(DISPLAY_COUNT));
+    console.log('표시할 추천 개수:', activeRecommendations.slice(0, DISPLAY_COUNT).length);
+    console.log('후보 추천 개수:', activeRecommendations.slice(DISPLAY_COUNT).length);
   }, [recommendations, user.rec_eval]);
 
-  const getBoothById = (id: number): Booth | undefined => {
+  const getBoothById = (id: string): Booth | undefined => {
     return boothData.find(booth => booth.id === id);
   };
 
-  const getEvaluation = (boothId: number): { booth_rating?: number; rec_rating?: number } | null => {
+  const getEvaluation = (boothId: string): { booth_rating?: number; rec_rating?: number } | null => {
     if (!user.rec_eval) return null;
     try {
       const evalArray = JSON.parse(user.rec_eval);
@@ -178,17 +184,6 @@ const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
 
       <div className="booth-list">
         {displayedRecommendations
-          .sort((a, b) => {
-            const evalA = getEvaluation(a.id);
-            const evalB = getEvaluation(b.id);
-            const isEvaluatedA = evalA && (evalA.booth_rating || evalA.rec_rating);
-            const isEvaluatedB = evalB && (evalB.booth_rating || evalB.rec_rating);
-            
-            // 평가 안된 것을 위로, 평가된 것을 아래로
-            if (isEvaluatedA && !isEvaluatedB) return 1;
-            if (!isEvaluatedA && isEvaluatedB) return -1;
-            return 0;
-          })
           .map((rec) => {
           const booth = getBoothById(rec.id);
           if (!booth) return null;
@@ -226,7 +221,7 @@ const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
                   </div>
                 </div>
                 <p>
-                  {isPersonalType ? rec.rationale : booth.company_description}
+                  {rec.rationale}
                 </p>
                 {booth.products && (
                   <p style={{ fontSize: '12px', color: '#888', marginTop: '8px' }}>

@@ -3,11 +3,12 @@
 -- User 테이블 생성
 CREATE TABLE IF NOT EXISTS "user" (
   user_id INTEGER PRIMARY KEY,
-  type VARCHAR(20) NOT NULL CHECK (type IN ('many_many_personal', 'many_many_basic', 'many_few_personal', 'many_few_basic', 'few_few_personal', 'few_few_basic')),
+  type VARCHAR(20) NOT NULL CHECK (type IN ('A', 'B', 'C')),
   age INTEGER,
   gender VARCHAR(10),
   interests JSONB,
-  details TEXT,
+  followup_questions TEXT,
+  followup_answers TEXT,
   started_at TIMESTAMP WITH TIME ZONE,
   ended_at TIMESTAMP WITH TIME ZONE,
   recommended_at TIMESTAMP WITH TIME ZONE,

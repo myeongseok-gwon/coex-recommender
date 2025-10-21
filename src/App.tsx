@@ -5,6 +5,7 @@ import { userService } from './services/supabase';
 import { llmService } from './services/llm';
 import LandingPage from './components/LandingPage';
 import UserFormPage from './components/UserFormPage';
+import FollowUpQuestionsPage from './components/FollowUpQuestionsPage';
 import LoadingPage from './components/LoadingPage';
 import RecommendationsPage from './components/RecommendationsPage';
 import BoothDetailPage from './components/BoothDetailPage';
@@ -19,14 +20,20 @@ const App: React.FC = () => {
     recommendations: [],
     selectedBooth: null,
     boothData: [],
-    evaluation: null
+    evaluation: null,
+    userFormData: undefined
   });
+
+  const [followUpData, setFollowUpData] = useState<{ summary: string; questions: string[] } | null>(null);
 
   useEffect(() => {
     // 부스 데이터 로드
     const loadData = async () => {
       try {
+        console.log('=== 부스 데이터 로드 시작 ===');
         const boothData = await loadBoothData();
+        console.log('로드된 부스 데이터 개수:', boothData.length);
+        console.log('부스 데이터 첫 3개:', boothData.slice(0, 3));
         setState(prev => ({ ...prev, boothData }));
         
         // sessionStorage에서 상태 복원 시도
@@ -58,16 +65,18 @@ const App: React.FC = () => {
 
   // 추천 결과 중복 제거 (뒤 항목 제거 = 최초 항목 유지)
   const dedupeRecommendations = (list: any[]) => {
-    const seen = new Set<number>();
+    const seen = new Set<string | number>();
     const result: any[] = [];
     for (const item of list || []) {
-      const id = Number(item?.id);
-      if (!Number.isFinite(id)) continue;
+      if (!item?.id) continue; // id가 없는 항목은 건너뛰기
+      
+      const id = item.id; // id를 그대로 사용 (문자열이든 숫자든)
       if (!seen.has(id)) {
         seen.add(id);
         result.push(item);
       }
     }
+    console.log('중복 제거 처리:', { 입력개수: list?.length, 출력개수: result.length });
     return result;
   };
 
@@ -77,7 +86,7 @@ const App: React.FC = () => {
       if (userId === 0) {
         const adminUser: User = {
           user_id: 0,
-          type: 'many_personal',
+          type: 'C',
         };
         
         setState(prev => ({
@@ -160,10 +169,18 @@ const App: React.FC = () => {
         currentPage: 'loading'
       }));
 
-      // LLM API 호출
-      const visitorInfo = createVisitorInfo(state.currentUser, formData);
+      // LLM API 호출 - Type A는 추가 질문-답변 없이 추천
+      const visitorInfo = createVisitorInfo(state.currentUser, formData, null);
+      console.log('=== App.tsx: 추천 생성 시작 (Type A) ===');
+      console.log('부스 데이터 개수:', state.boothData.length);
+      
       const rawRecommendations = await llmService.getRecommendations(state.boothData, visitorInfo);
+      console.log('LLM에서 받은 원본 추천:', rawRecommendations);
+      console.log('원본 추천 길이:', rawRecommendations?.length);
+      
       const recommendations = dedupeRecommendations(rawRecommendations);
+      console.log('중복 제거 후 추천:', recommendations);
+      console.log('중복 제거 후 추천 길이:', recommendations?.length);
       
       // 추천 결과를 데이터베이스에 저장
       await userService.updateUserRecommendation(
@@ -186,28 +203,134 @@ const App: React.FC = () => {
     }
   };
 
-  const createVisitorInfo = (user: User, formData: UserFormData): string => {
+  const handleFormNext = async (formData: UserFormData) => {
+    if (!state.currentUser) return;
+
+    try {
+      // 사용자 정보 업데이트
+      await userService.updateUserFormData(state.currentUser.user_id, formData);
+      
+      // 로딩 페이지로 이동
+      setState(prev => ({
+        ...prev,
+        userFormData: formData,
+        currentPage: 'loading'
+      }));
+
+      // LLM API 호출하여 추가 질문 생성
+      const visitorInfo = createVisitorInfo(state.currentUser, formData, null);
+      const followUpResult = await llmService.generateFollowUpQuestions(visitorInfo);
+      
+      // 추가 질문을 데이터베이스에 저장
+      await userService.updateFollowUpQuestions(
+        state.currentUser.user_id,
+        JSON.stringify(followUpResult.questions)
+      );
+
+      setFollowUpData(followUpResult);
+      
+      setState(prev => ({
+        ...prev,
+        currentPage: 'followup'
+      }));
+    } catch (error) {
+      console.error('추가 질문 생성 오류:', error);
+      alert('추가 질문 생성 중 오류가 발생했습니다. 다시 시도해주세요.');
+      setState(prev => ({
+        ...prev,
+        currentPage: 'form'
+      }));
+    }
+  };
+
+  const handleFollowUpSubmit = async (questionAnswerPairs: Array<{ question: string; answer: string }>) => {
+    if (!state.currentUser || !state.userFormData) return;
+
+    try {
+      // Type B, C 모두 question-answer pairs 저장
+      await userService.updateFollowUpAnswers(
+        state.currentUser.user_id, 
+        JSON.stringify(questionAnswerPairs)
+      );
+      
+      // 로딩 페이지로 이동
+      setState(prev => ({
+        ...prev,
+        currentPage: 'loading'
+      }));
+
+      // LLM API 호출
+      // Type B: 추가 답변을 받았지만 LLM에는 전달하지 않음 (첫 페이지 정보만)
+      // Type C: 추가 답변까지 LLM에 전달 (정교한 추천)
+      const visitorInfo = createVisitorInfo(
+        state.currentUser,
+        state.userFormData,
+        state.currentUser.type === 'C' ? questionAnswerPairs : null
+      );
+      console.log(`=== App.tsx: 추천 생성 시작 (Type ${state.currentUser.type}) ===`);
+      console.log('부스 데이터 개수:', state.boothData.length);
+      
+      const rawRecommendations = await llmService.getRecommendations(state.boothData, visitorInfo);
+      console.log('LLM에서 받은 원본 추천:', rawRecommendations);
+      console.log('원본 추천 길이:', rawRecommendations?.length);
+      
+      const recommendations = dedupeRecommendations(rawRecommendations);
+      console.log('중복 제거 후 추천:', recommendations);
+      console.log('중복 제거 후 추천 길이:', recommendations?.length);
+      
+      // 추천 결과를 데이터베이스에 저장
+      await userService.updateUserRecommendation(
+        state.currentUser.user_id, 
+        JSON.stringify(recommendations)
+      );
+
+      setState(prev => ({
+        ...prev,
+        recommendations,
+        currentPage: 'recommendations'
+      }));
+    } catch (error) {
+      console.error('추천 생성 오류:', error);
+      alert('추천 생성 중 오류가 발생했습니다. 다시 시도해주세요.');
+      setState(prev => ({
+        ...prev,
+        currentPage: 'followup'
+      }));
+    }
+  };
+
+  const createVisitorInfo = (
+    user: User, 
+    formData: UserFormData, 
+    questionAnswerPairs: Array<{ question: string; answer: string }> | null
+  ): string => {
     let info = `나이: ${formData.age}세\n`;
     info += `성별: ${formData.gender}\n`;
     
-    // 유저 타입에서 언더바 사이의 단어 추출 (예: abc_many_def -> "many")
-    const typeMatch = user.type.match(/_(\w+)_/);
-    const typeKeyword = typeMatch ? typeMatch[1] : '';
+    // Type A: 제한된 카테고리
+    // Type B: 모든 카테고리 (추가 답변 제외)
+    // Type C: 모든 카테고리 + 추가 질문-답변
+    const interestEntries = formData.interests ? Object.entries(formData.interests) : [];
     
-    // 관심사 정보 추가 (항상 표시)
-    if (formData.interests && Object.keys(formData.interests).length > 0) {
+    if (interestEntries.length > 0) {
+      // 모든 타입에서 전체 관심사 포함
       info += '\n선택한 관심사:\n';
-      for (const [subcategory, items] of Object.entries(formData.interests)) {
+      for (const [subcategory, items] of interestEntries) {
         if (items && items.length > 0) {
           info += `  ${subcategory}: ${items.join(', ')}\n`;
         }
       }
     }
     
-    // 기대사항 및 선호도 (few 타입일 경우 제외)
-    if (typeKeyword !== 'few' && formData.details && formData.details.trim()) {
-      info += `\n기대사항 및 선호도: ${formData.details}`;
+    // Type C만: 추가 질문-답변 포함
+    if (user.type === 'C' && questionAnswerPairs && questionAnswerPairs.length > 0) {
+      info += `\n\n추가 질문 및 답변:\n`;
+      questionAnswerPairs.forEach((pair, index) => {
+        info += `\nQ${index + 1}. ${pair.question}\n`;
+        info += `A${index + 1}. ${pair.answer}\n`;
+      });
     }
+    
     console.log(info);
     return info;
   };
@@ -272,6 +395,12 @@ const App: React.FC = () => {
           selectedBooth: null,
           currentPage: 'landing'
         };
+      } else if (prev.currentPage === 'followup') {
+        // 추가 질문 페이지에서 뒤로가기를 누르면 폼 페이지로 이동
+        return {
+          ...prev,
+          currentPage: 'form'
+        };
       } else if (prev.currentPage === 'form') {
         return {
           ...prev,
@@ -294,6 +423,18 @@ const App: React.FC = () => {
           <UserFormPage
             user={state.currentUser}
             onSubmit={handleFormSubmit}
+            onNext={handleFormNext}
+            onBack={handleBack}
+          />
+        );
+      
+      case 'followup':
+        if (!state.currentUser || !followUpData) return null;
+        return (
+          <FollowUpQuestionsPage
+            summary={followUpData.summary}
+            questions={followUpData.questions}
+            onSubmit={handleFollowUpSubmit}
             onBack={handleBack}
           />
         );

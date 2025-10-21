@@ -26,7 +26,7 @@ export const userService = {
     if (error) throw error;
   },
 
-  async uploadPhoto(userId: number, file: File, boothId?: number) {
+  async uploadPhoto(userId: number, file: File, boothId?: string) {
     const fileExt = file.name.split('.').pop();
     const fileName = boothId 
       ? `user_${userId}_booth_${boothId}_${Date.now()}.${fileExt}`
@@ -60,11 +60,39 @@ export const userService = {
   },
 
   async updateUserFormData(userId: number, formData: any) {
+    const updateData: any = {
+      ended_at: new Date().toISOString()
+    };
+    
+    // 명시적으로 필요한 필드만 추가
+    if (formData.age !== undefined) updateData.age = formData.age;
+    if (formData.gender !== undefined) updateData.gender = formData.gender;
+    if (formData.interests !== undefined) updateData.interests = formData.interests;
+    
+    const { error } = await supabase
+      .from('user')
+      .update(updateData)
+      .eq('user_id', userId);
+    
+    if (error) throw error;
+  },
+
+  async updateFollowUpQuestions(userId: number, questions: string) {
     const { error } = await supabase
       .from('user')
       .update({
-        ...formData,
-        ended_at: new Date().toISOString()
+        followup_questions: questions
+      })
+      .eq('user_id', userId);
+    
+    if (error) throw error;
+  },
+
+  async updateFollowUpAnswers(userId: number, answers: string) {
+    const { error } = await supabase
+      .from('user')
+      .update({
+        followup_answers: answers
       })
       .eq('user_id', userId);
     
@@ -132,7 +160,7 @@ export const evaluationService = {
     return data;
   },
 
-  async startEvaluation(userId: number, boothId: number, photoUrl?: string) {
+  async startEvaluation(userId: number, boothId: string, photoUrl?: string) {
     const { data, error } = await supabase
       .from('evaluation')
       .upsert({
@@ -150,7 +178,7 @@ export const evaluationService = {
     return data;
   },
 
-  async updateEvaluationPhoto(userId: number, boothId: number, photoUrl: string) {
+  async updateEvaluationPhoto(userId: number, boothId: string, photoUrl: string) {
     const { error } = await supabase
       .from('evaluation')
       .update({ photo_url: photoUrl })
@@ -160,7 +188,7 @@ export const evaluationService = {
     if (error) throw error;
   },
 
-  async updateEvaluation(userId: number, boothId: number, updates: any) {
+  async updateEvaluation(userId: number, boothId: string, updates: any) {
     const { error } = await supabase
       .from('evaluation')
       .update(updates)
@@ -170,7 +198,7 @@ export const evaluationService = {
     if (error) throw error;
   },
 
-  async getEvaluation(userId: number, boothId: number) {
+  async getEvaluation(userId: number, boothId: string) {
     const { data, error } = await supabase
       .from('evaluation')
       .select('*')
@@ -192,7 +220,7 @@ export const evaluationService = {
     return data;
   },
 
-  async deleteRecommendation(userId: number, boothId: number) {
+  async deleteRecommendation(userId: number, boothId: string) {
     const { data, error } = await supabase
       .from('evaluation')
       .upsert({
@@ -222,7 +250,7 @@ export const boothPositionService = {
     return data || [];
   },
 
-  async getPosition(boothId: number) {
+  async getPosition(boothId: string) {
     const { data, error } = await supabase
       .from('booth_positions')
       .select('*')
@@ -233,7 +261,7 @@ export const boothPositionService = {
     return data;
   },
 
-  async upsertPosition(boothId: number, x: number, y: number) {
+  async upsertPosition(boothId: string, x: number, y: number) {
     const { data, error } = await supabase
       .from('booth_positions')
       .upsert({
@@ -251,7 +279,7 @@ export const boothPositionService = {
     return data;
   },
 
-  async deletePosition(boothId: number) {
+  async deletePosition(boothId: string) {
     const { error } = await supabase
       .from('booth_positions')
       .delete()

@@ -2,23 +2,29 @@
 -- 기존 데이터가 있으면 업데이트, 없으면 삽입
 -- Supabase SQL Editor에서 실행하세요
 
+-- Type A: Less questions, feed all to LLM (few_few)
+-- Type B: Many questions, feed limited to LLM (many_few)
+-- Type C: Many questions, feed all to LLM (many_many)
+
 INSERT INTO "user" (user_id, type) VALUES
-(1, 'many_personal'),
-(2, 'many_basic'),
-(3, 'few_personal'),
-(4, 'few_basic'),
-(5, 'many_personal'),
-(6, 'many_basic'),
-(7, 'few_personal'),
-(8, 'few_basic'),
-(9, 'many_personal'),
-(10, 'many_basic'),
-(11, 'few_personal'),
-(12, 'few_basic'),
-(13, 'many_personal'),
-(14, 'many_basic'),
-(15, 'few_personal'),
-(16, 'few_basic')
+(1, 'A'),
+(2, 'B'),
+(3, 'C'),
+(4, 'A'),
+(5, 'B'),
+(6, 'C'),
+(7, 'A'),
+(8, 'B'),
+(9, 'C'),
+(10, 'A'),
+(11, 'B'),
+(12, 'C'),
+(13, 'A'),
+(14, 'B'),
+(15, 'C'),
+(16, 'A'),
+(17, 'B'),
+(18, 'C')
 ON CONFLICT (user_id) 
 DO UPDATE SET 
   type = EXCLUDED.type,
