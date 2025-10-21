@@ -16,20 +16,20 @@ const INTEREST_CATEGORIES = {
     icon: "🥬",
     subcategories: {
       "과일/채소/곡물": ["과일", "채소", "쌀/잡곡", "견과류"],
-      "육류/수산물": ["소고기", "돼지고기", "닭고기", "해산물", "수산가공품"],
+      "육류/수산물": ["소", "돼지", "닭", "해산물", "수산가공품"],
     }
   },
   "가공식품": {
     icon: "🍱",
     subcategories: {
-      "간편식/HMR": ["냉동식품", "냉장식품", "즉석밥", "도시락", "레토르트"],
+      "간편식/HMR": ["냉동식품", "냉장식품", "도시락", "레토르트"],
       "포장식품": ["통조림", "인스턴트", "면류", "장류"],
     }
   },
   "베이커리 & 디저트": {
     icon: "🍰",
     subcategories: {
-      "빵": ["식빵", "페이스트리", "건강빵", "베이글", "제과제빵 재료"],
+      "빵": ["식빵", "페이스트리", "베이글", "제과제빵 재료"],
       "디저트": ["케이크", "아이스크림", "푸딩", "젤리", "초콜릿"],
       "스낵": ["과자", "쿠키", "견과류"]
     }
@@ -38,8 +38,8 @@ const INTEREST_CATEGORIES = {
     icon: "🥛",
     subcategories: {
       "유제품": ["우유", "치즈", "요거트", "버터", "크림"],
-      "커피/차": ["원두", "인스턴트 커피", "녹차", "홍차", "허브티", "전통차"],
-      "음료": ["주스", "탄산음료", "기능성 음료", "생수", "두유"],
+      "커피/차": ["원두", "인스턴트 커피", "차"],
+      "음료": ["주스", "탄산음료", "기능성 음료"],
     }
   },
   "주류": {
@@ -69,8 +69,8 @@ const INTEREST_CATEGORIES = {
   "라이프스타일": {
     icon: "🏃",
     subcategories: {
-      "식이 스타일": ["채식주의", "비건", "저탄수", "저염식", "저당식", "고단백"],
-      "관심 키워드": ["다이어트/체중관리 ⚖️", "운동/피트니스 💪", "홈쿡/요리 👨‍🍳", "캠핑/아웃도어 🏕️", "와인/페어링 🍷", "디저트/카페 ☕", "키즈/이유식 👶", "반려동물 식품 🐾", "밀프렙/도시락 🍱", "베이킹/제과제빵 🧁", "고메/스페셜티 ⭐"],
+      "식이 스타일": ["채식/비건", "저탄수", "저염식", "저당식", "고단백"],
+      "관심 키워드": ["다이어트 ⚖️", "운동 💪", "홈쿡/요리 👨‍🍳", "캠핑 🏕️", "와인 🍷", "디저트/카페 ☕", "키즈/이유식 👶", "반려동물 🐾", "밀프렙/도시락 🍱", "제과제빵 🧁", "고메/스페셜티 ⭐"],
     }
   }
 };
@@ -82,8 +82,6 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onNext, onB
     interests: {}
   });
 
-  const [openCategories, setOpenCategories] = useState<Set<string>>(new Set());
-  
   // Type A는 simplified form (less questions)
   // Type B, C는 full form (many questions)
   const isTypeA = user.type === 'A';
@@ -117,16 +115,6 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onNext, onB
       ...prev,
       [field]: value
     }));
-  };
-
-  const toggleCategory = (category: string) => {
-    const newSet = new Set(openCategories);
-    if (newSet.has(category)) {
-      newSet.delete(category);
-    } else {
-      newSet.add(category);
-    }
-    setOpenCategories(newSet);
   };
 
   const handleInterestToggle = (subcategory: string, item: string) => {
@@ -219,41 +207,34 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onNext, onB
             {Object.entries(INTEREST_CATEGORIES)
               .map(([category, data]) => (
               <div key={category} className="interest-category">
-                <button
-                  type="button"
-                  className={`category-header ${openCategories.has(category) ? 'open' : ''}`}
-                  onClick={() => toggleCategory(category)}
-                >
+                <div className="category-header">
                   <span className="category-icon">{data.icon}</span>
                   <span className="category-name">{category}</span>
-                  <span className="category-arrow">{openCategories.has(category) ? '▼' : '▶'}</span>
-                </button>
+                </div>
                 
-                {openCategories.has(category) && (
-                  <div className="subcategories">
-                    {Object.entries(data.subcategories).map(([subcategory, items]) => (
-                      <div key={subcategory} className="subcategory">
-                        <div className="subcategory-title">{subcategory}</div>
-                        <div className="items-grid">
-                          {items.map((item) => {
-                            const selected = isItemSelected(subcategory, item);
-                            return (
-                              <button
-                                key={item}
-                                type="button"
-                                className={`chip ${selected ? 'selected' : ''}`}
-                                aria-pressed={selected}
-                                onClick={() => handleInterestToggle(subcategory, item)}
-                              >
-                                {item}
-                              </button>
-                            );
-                          })}
-                        </div>
+                <div className="subcategories">
+                  {Object.entries(data.subcategories).map(([subcategory, items]) => (
+                    <div key={subcategory} className="subcategory">
+                      <div className="subcategory-title">{subcategory}</div>
+                      <div className="items-flex">
+                        {items.map((item) => {
+                          const selected = isItemSelected(subcategory, item);
+                          return (
+                            <button
+                              key={item}
+                              type="button"
+                              className={`chip ${selected ? 'selected' : ''}`}
+                              aria-pressed={selected}
+                              onClick={() => handleInterestToggle(subcategory, item)}
+                            >
+                              {item}
+                            </button>
+                          );
+                        })}
                       </div>
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
@@ -296,7 +277,6 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onNext, onB
           border: 1px solid #e0e0e0;
           border-radius: 8px;
           overflow: hidden;
-          margin: 0 20px;
         }
 
         .interest-category {
@@ -308,39 +288,21 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onNext, onB
         }
 
         .category-header {
-          width: 100%;
           display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 16px;
+          gap: 8px;
+          padding: 12px 16px;
           background: #f8f9fa;
-          border: none;
-          cursor: pointer;
-          transition: background 0.2s;
-          text-align: left;
-          font-size: 1rem;
-        }
-
-        .category-header:hover {
-          background: #e9ecef;
-        }
-
-        .category-header.open {
-          background: #e3f2fd;
+          border-bottom: 1px solid #e0e0e0;
         }
 
         .category-icon {
-          font-size: 1.5rem;
+          font-size: 1.2rem;
         }
 
         .category-name {
-          flex: 1;
           font-weight: 600;
-        }
-
-        .category-arrow {
-          color: #666;
-          font-size: 0.8rem;
+          font-size: 0.95rem;
         }
 
         .subcategories {
@@ -349,7 +311,7 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onNext, onB
         }
 
         .subcategory {
-          margin-bottom: 20px;
+          margin-bottom: 16px;
         }
 
         .subcategory:last-child {
@@ -358,31 +320,32 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onNext, onB
 
         .subcategory-title {
           font-weight: 600;
-          margin-bottom: 12px;
+          margin-bottom: 8px;
           color: #333;
-          font-size: 0.95rem;
+          font-size: 0.85rem;
         }
 
-        .items-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-          gap: 8px;
+        .items-flex {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
         }
 
         .chip {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          padding: 8px 12px;
+          padding: 6px 10px;
           border-radius: 999px;
           border: 1px solid #d0d7de;
           background: #fff;
           color: #24292f;
-          font-size: 0.9rem;
-          line-height: 1;
+          font-size: 0.8rem;
+          line-height: 1.2;
           cursor: pointer;
           transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s;
           box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
+          white-space: nowrap;
         }
 
         .chip:hover {
