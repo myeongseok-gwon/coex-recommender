@@ -31,7 +31,7 @@ const INTEREST_CATEGORIES = {
     subcategories: {
       "빵": ["식빵", "페이스트리", "베이글", "제과제빵 재료"],
       "디저트": ["케이크", "아이스크림", "푸딩", "젤리", "초콜릿"],
-      "스낵": ["과자", "쿠키", "견과류"]
+      "스낵": ["과자", "쿠키"]
     }
   },
   "유제품 & 음료": {
@@ -86,6 +86,11 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onNext, onB
   // Type B, C는 full form (many questions)
   const isTypeA = user.type === 'A';
 
+  // 이모지 제거 함수
+  const removeEmojis = (text: string): string => {
+    return text.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]|[\u{FE00}-\u{FE0F}]|[\u{1F1E0}-\u{1F1FF}]|[\u{E0020}-\u{E007F}]|[\u{20D0}-\u{20FF}]|[\u{2300}-\u{23FF}]|[\u{2B50}]|[\u{231A}-\u{231B}]|[\u{23E9}-\u{23EC}]|[\u{23F0}]|[\u{23F3}]|[\u{25FD}-\u{25FE}]|[\u{2614}-\u{2615}]|[\u{2648}-\u{2653}]|[\u{267F}]|[\u{2693}]|[\u{26A1}]|[\u{26AA}-\u{26AB}]|[\u{26BD}-\u{26BE}]|[\u{26C4}-\u{26C5}]|[\u{26CE}]|[\u{26D4}]|[\u{26EA}]|[\u{26F2}-\u{26F3}]|[\u{26F5}]|[\u{26FA}]|[\u{26FD}]|[\u{2705}]|[\u{270A}-\u{270B}]|[\u{2728}]|[\u{274C}]|[\u{274E}]|[\u{2753}-\u{2755}]|[\u{2757}]|[\u{2795}-\u{2797}]|[\u{27B0}]|[\u{27BF}]|[\u{2B1B}-\u{2B1C}]/gu, '').trim();
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -102,11 +107,26 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onNext, onB
       return;
     }
 
+    // 이모지 제거한 formData 생성
+    const cleanedInterests: { [key: string]: string[] } = {};
+    if (formData.interests) {
+      Object.keys(formData.interests).forEach(subcategory => {
+        cleanedInterests[subcategory] = formData.interests![subcategory].map(item => 
+          removeEmojis(item)
+        );
+      });
+    }
+
+    const cleanedFormData: UserFormData = {
+      ...formData,
+      interests: cleanedInterests
+    };
+
     // Type A는 바로 추천, Type B/C는 다음 페이지로
     if (isTypeA) {
-      onSubmit(formData);
+      onSubmit(cleanedFormData);
     } else {
-      onNext(formData);
+      onNext(cleanedFormData);
     }
   };
 

@@ -8,7 +8,7 @@ interface FollowUpQuestionsPageProps {
 }
 
 const FollowUpQuestionsPage: React.FC<FollowUpQuestionsPageProps> = ({
-  summary,
+  summary: _summary,
   questions,
   onSubmit,
   onBack
@@ -84,20 +84,11 @@ const FollowUpQuestionsPage: React.FC<FollowUpQuestionsPageProps> = ({
       </div>
 
       <div className="header">
-        <h1>관심사 확인 및 추가 질문</h1>
-        <p>더 정확한 추천을 위해 추가 정보를 입력해주세요</p>
+        <h1>추가 질문</h1>
+        <p>더 정확한 추천을 위해 몇 가지 질문에 답해주세요</p>
       </div>
 
-      {currentQuestionIndex === 0 && (
-        <div className="summary-section">
-          <h2 className="section-title">📋 귀하의 관심사 요약</h2>
-          <div className="summary-content">
-            {summary}
-          </div>
-        </div>
-      )}
-
-        <div className="chat-container">
+      <div className="chat-container">
           <div className="progress-bar">
             <div className="progress-text">
               질문 {currentQuestionIndex + 1} / {questions.length}
@@ -236,33 +227,9 @@ const FollowUpQuestionsPage: React.FC<FollowUpQuestionsPageProps> = ({
           opacity: 0.8;
         }
 
-        .summary-section {
-          margin: 0 20px 2rem 20px;
-          animation: fadeIn 0.3s ease-in;
-        }
-
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(-10px); }
           to { opacity: 1; transform: translateY(0); }
-        }
-
-        .section-title {
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: #333;
-          margin-bottom: 1rem;
-          padding-bottom: 0.5rem;
-          border-bottom: 2px solid #1976d2;
-        }
-
-        .summary-content {
-          background: #e3f2fd;
-          padding: 1.25rem;
-          border-radius: 8px;
-          line-height: 1.8;
-          color: #333;
-          font-size: 1rem;
-          border-left: 4px solid #1976d2;
         }
 
         .chat-container {
