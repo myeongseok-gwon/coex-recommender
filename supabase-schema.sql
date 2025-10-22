@@ -2,7 +2,7 @@
 
 -- User 테이블 생성
 CREATE TABLE IF NOT EXISTS "user" (
-  user_id INTEGER PRIMARY KEY,
+  user_id VARCHAR(50) PRIMARY KEY,
   type VARCHAR(20) NOT NULL CHECK (type IN ('A', 'B', 'C')),
   age INTEGER,
   gender VARCHAR(10),
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS "user" (
 -- Evaluation 테이블 생성
 CREATE TABLE IF NOT EXISTS "evaluation" (
   id SERIAL PRIMARY KEY,
-  user_id INTEGER NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
+  user_id VARCHAR(50) NOT NULL REFERENCES "user"(user_id) ON DELETE CASCADE,
   booth_id VARCHAR(10) NOT NULL,
   photo_url TEXT,
   booth_rating INTEGER CHECK (booth_rating >= 1 AND booth_rating <= 5),

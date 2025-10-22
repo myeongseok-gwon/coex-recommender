@@ -6,7 +6,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your_supabase
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export const userService = {
-  async getUser(userId: number) {
+  async getUser(userId: string) {
     const { data, error } = await supabase
       .from('user')
       .select('*')
@@ -17,7 +17,7 @@ export const userService = {
     return data;
   },
 
-  async updateUserStartedAt(userId: number) {
+  async updateUserStartedAt(userId: string) {
     const { error } = await supabase
       .from('user')
       .update({ started_at: new Date().toISOString() })
@@ -26,7 +26,7 @@ export const userService = {
     if (error) throw error;
   },
 
-  async uploadPhoto(userId: number, file: File, boothId?: string) {
+  async uploadPhoto(userId: string, file: File, boothId?: string) {
     const fileExt = file.name.split('.').pop();
     const fileName = boothId 
       ? `user_${userId}_booth_${boothId}_${Date.now()}.${fileExt}`
@@ -59,7 +59,7 @@ export const userService = {
     return publicUrl;
   },
 
-  async updateUserFormData(userId: number, formData: any) {
+  async updateUserFormData(userId: string, formData: any) {
     const updateData: any = {
       ended_at: new Date().toISOString()
     };
@@ -77,7 +77,7 @@ export const userService = {
     if (error) throw error;
   },
 
-  async updateFollowUpQuestions(userId: number, questions: string) {
+  async updateFollowUpQuestions(userId: string, questions: string) {
     const { error } = await supabase
       .from('user')
       .update({
@@ -88,7 +88,7 @@ export const userService = {
     if (error) throw error;
   },
 
-  async updateFollowUpAnswers(userId: number, answers: string) {
+  async updateFollowUpAnswers(userId: string, answers: string) {
     const { error } = await supabase
       .from('user')
       .update({
@@ -99,7 +99,7 @@ export const userService = {
     if (error) throw error;
   },
 
-  async updateUserRecommendation(userId: number, recResult: string) {
+  async updateUserRecommendation(userId: string, recResult: string) {
     const { error } = await supabase
       .from('user')
       .update({
@@ -111,7 +111,7 @@ export const userService = {
     if (error) throw error;
   },
 
-  async updateUserRecEval(userId: number, recEval: string) {
+  async updateUserRecEval(userId: string, recEval: string) {
     const { error } = await supabase
       .from('user')
       .update({
@@ -122,7 +122,7 @@ export const userService = {
     if (error) throw error;
   },
 
-  async updateEvaluationFinished(userId: number) {
+  async updateEvaluationFinished(userId: string) {
     const { error } = await supabase
       .from('user')
       .update({
@@ -133,7 +133,7 @@ export const userService = {
     if (error) throw error;
   },
 
-  async updateFinalSurvey(userId: number, finalRating: number, finalPros: string, finalCons: string) {
+  async updateFinalSurvey(userId: string, finalRating: number, finalPros: string, finalCons: string) {
     const { error } = await supabase
       .from('user')
       .update({
@@ -147,7 +147,7 @@ export const userService = {
     if (error) throw error;
   },
 
-  async uploadPathImages(userId: number, compositeBlob: Blob, drawingBlob: Blob) {
+  async uploadPathImages(userId: string, compositeBlob: Blob, drawingBlob: Blob) {
     const timestamp = Date.now();
     
     // 합성 이미지 업로드 (지도 + 경로)
@@ -213,7 +213,7 @@ export const evaluationService = {
     return data;
   },
 
-  async startEvaluation(userId: number, boothId: string, photoUrl?: string) {
+  async startEvaluation(userId: string, boothId: string, photoUrl?: string) {
     const { data, error } = await supabase
       .from('evaluation')
       .upsert({
@@ -231,7 +231,7 @@ export const evaluationService = {
     return data;
   },
 
-  async updateEvaluationPhoto(userId: number, boothId: string, photoUrl: string) {
+  async updateEvaluationPhoto(userId: string, boothId: string, photoUrl: string) {
     const { error } = await supabase
       .from('evaluation')
       .update({ photo_url: photoUrl })
@@ -241,7 +241,7 @@ export const evaluationService = {
     if (error) throw error;
   },
 
-  async updateEvaluation(userId: number, boothId: string, updates: any) {
+  async updateEvaluation(userId: string, boothId: string, updates: any) {
     const { error } = await supabase
       .from('evaluation')
       .update(updates)
@@ -251,7 +251,7 @@ export const evaluationService = {
     if (error) throw error;
   },
 
-  async getEvaluation(userId: number, boothId: string) {
+  async getEvaluation(userId: string, boothId: string) {
     const { data, error } = await supabase
       .from('evaluation')
       .select('*')
@@ -263,7 +263,7 @@ export const evaluationService = {
     return data;
   },
 
-  async getAllEvaluations(userId: number) {
+  async getAllEvaluations(userId: string) {
     const { data, error } = await supabase
       .from('evaluation')
       .select('*')
@@ -273,7 +273,7 @@ export const evaluationService = {
     return data;
   },
 
-  async deleteRecommendation(userId: number, boothId: string) {
+  async deleteRecommendation(userId: string, boothId: string) {
     const { data, error } = await supabase
       .from('evaluation')
       .upsert({

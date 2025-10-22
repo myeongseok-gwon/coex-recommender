@@ -80,12 +80,12 @@ const App: React.FC = () => {
     return result;
   };
 
-  const handleUserValid = async (userId: number, hasRecommendation: boolean) => {
+  const handleUserValid = async (userId: string, hasRecommendation: boolean) => {
     try {
-      // Admin 모드 처리 (userId === 0)
-      if (userId === 0) {
+      // Admin 모드 처리 (userId === '0')
+      if (userId === '0') {
         const adminUser: User = {
-          user_id: 0,
+          user_id: '0',
           type: 'C',
         };
         

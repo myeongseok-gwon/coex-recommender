@@ -3,7 +3,7 @@ import { loadUserData } from '../utils/dataLoader';
 import { userService } from '../services/supabase';
 
 interface LandingPageProps {
-  onUserValid: (userId: number, hasRecommendation: boolean) => void;
+  onUserValid: (userId: string, hasRecommendation: boolean) => void;
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({ onUserValid }) => {
@@ -21,20 +21,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ onUserValid }) => {
       setLoading(true);
       setError('');
       
-      // Admin 모드로 진입 (user_id = 0, 빈 추천으로 지도 페이지 접근)
-      onUserValid(0, true);
+      // Admin 모드로 진입 (user_id = '0', 빈 추천으로 지도 페이지 접근)
+      onUserValid('0', true);
       setLoading(false);
       return;
     }
 
-    const userIdNum = parseInt(userId);
+    // user_id를 문자열로 처리
+    const trimmedUserId = userId.trim();
     
-    if (isNaN(userIdNum)) {
+    if (!trimmedUserId) {
       setError('올바른 사용자 ID를 입력해주세요.');
       return;
     }
 
-    const isValidUser = validUsers.some(user => user.user_id === userIdNum);
+    const isValidUser = validUsers.some(user => user.user_id === trimmedUserId);
     
     if (!isValidUser) {
       setError('유효하지 않은 사용자 ID입니다.');
@@ -46,10 +47,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onUserValid }) => {
 
     try {
       // 데이터베이스에서 사용자 정보 조회
-      const userData = await userService.getUser(userIdNum);
+      const userData = await userService.getUser(trimmedUserId);
       const hasRecommendation = !!userData.recommended_at;
       
-      onUserValid(userIdNum, hasRecommendation);
+      onUserValid(trimmedUserId, hasRecommendation);
     } catch (error) {
       console.error('사용자 정보 조회 오류:', error);
       setError('사용자 정보를 조회할 수 없습니다. 다시 시도해주세요.');

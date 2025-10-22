@@ -1,5 +1,5 @@
 export interface User {
-  user_id: number;
+  user_id: string;
   type: 'A' | 'B' | 'C';
   age?: number;
   gender?: string;
@@ -22,7 +22,7 @@ export interface User {
 }
 
 export interface Evaluation {
-  user_id: number;
+  user_id: string;
   booth_id: string; // A1234, B5678 등의 문자열 형식
   photo_url?: string;
   booth_rating?: number;

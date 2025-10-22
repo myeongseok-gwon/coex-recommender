@@ -33,23 +33,23 @@ export const loadUserData = (): any[] => {
   // Type B: Many questions, feed limited to LLM
   // Type C: Many questions, feed all to LLM
   return [
-    { user_id: 1, type: 'A' },
-    { user_id: 2, type: 'B' },
-    { user_id: 3, type: 'C' },
-    { user_id: 4, type: 'A' },
-    { user_id: 5, type: 'B' },
-    { user_id: 6, type: 'C' },
-    { user_id: 7, type: 'A' },
-    { user_id: 8, type: 'B' },
-    { user_id: 9, type: 'C' },
-    { user_id: 10, type: 'A' },
-    { user_id: 11, type: 'B' },
-    { user_id: 12, type: 'C' },
-    { user_id: 13, type: 'A' },
-    { user_id: 14, type: 'B' },
-    { user_id: 15, type: 'C' },
-    { user_id: 16, type: 'A' },
-    { user_id: 17, type: 'B' },
-    { user_id: 18, type: 'C' }
+    { user_id: '1', type: 'A' },
+    { user_id: '2', type: 'B' },
+    { user_id: '3', type: 'C' },
+    { user_id: '4', type: 'A' },
+    { user_id: '5', type: 'B' },
+    { user_id: '6', type: 'C' },
+    { user_id: '7', type: 'A' },
+    { user_id: '8', type: 'B' },
+    { user_id: '9', type: 'C' },
+    { user_id: '10', type: 'A' },
+    { user_id: '11', type: 'B' },
+    { user_id: '12', type: 'C' },
+    { user_id: '13', type: 'A' },
+    { user_id: '14', type: 'B' },
+    { user_id: '15', type: 'C' },
+    { user_id: '16', type: 'A' },
+    { user_id: '17', type: 'B' },
+    { user_id: '18', type: 'C' }
   ];
 };
