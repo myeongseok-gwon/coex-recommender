@@ -42,7 +42,7 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations, onBack }) => {
   // Admin 모드 체크 (user_id가 'admin' 문자열과 일치하거나 숫자 0)
   useEffect(() => {
     // user_id가 0이거나 문자열로 'admin'인 경우 (LandingPage에서 처리)
-    setIsAdminMode(user.user_id === 0);
+    setIsAdminMode(user.user_id === '0');
   }, [user]);
 
   // 부스 위치 데이터 로드
