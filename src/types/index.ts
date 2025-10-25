@@ -1,12 +1,15 @@
 export interface User {
   user_id: string;
-  type: 'A' | 'B' | 'C';
   age?: number;
   gender?: string;
+  visit_purpose?: string;
   interests?: Record<string, string[]>;
-  details?: string;
   followup_questions?: string;
   followup_answers?: string;
+  initial_form_started_at?: string;
+  initial_form_submitted_at?: string;
+  skipped_at?: string;
+  additional_form_submitted_at?: string;
   started_at?: string;
   ended_at?: string;
   recommended_at?: string;
@@ -53,6 +56,7 @@ export interface Recommendation {
 export interface UserFormData {
   age: number;
   gender: string;
+  visitPurpose?: string;
   interests?: Record<string, string[]>;
 }
 
@@ -64,6 +68,27 @@ export interface BoothPosition {
   updated_at?: string;
 }
 
+export interface GpsLocation {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  timestamp: number;
+  altitude?: number;
+  speed?: number;
+  heading?: number;
+}
+
+export interface GpsTracking {
+  id?: number;
+  user_id: string;
+  total_points?: number;
+  total_distance?: number;
+  duration?: string;
+  locations: GpsLocation[];
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface AppState {
   currentUser: User | null;
   currentPage: 'landing' | 'form' | 'followup' | 'loading' | 'recommendations' | 'detail' | 'map' | 'survey' | 'complete';
@@ -71,5 +96,12 @@ export interface AppState {
   selectedBooth: Booth | null;
   boothData: Booth[];
   evaluation: Evaluation | null;
-  userFormData?: UserFormData;
+  userFormData: UserFormData | null;
+}
+
+// Window 객체 확장
+declare global {
+  interface Window {
+    gpsService?: any;
+  }
 }

@@ -4,6 +4,7 @@ interface FollowUpQuestionsPageProps {
   summary: string;
   questions: string[];
   onSubmit: (questionAnswerPairs: Array<{ question: string; answer: string }>) => void;
+  onSkip: () => void;
   onBack: () => void;
 }
 
@@ -11,6 +12,7 @@ const FollowUpQuestionsPage: React.FC<FollowUpQuestionsPageProps> = ({
   summary: _summary,
   questions,
   onSubmit,
+  onSkip,
   onBack
 }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
@@ -182,6 +184,13 @@ const FollowUpQuestionsPage: React.FC<FollowUpQuestionsPageProps> = ({
                 {currentAnswer.length}자
               </div>
               <div className="button-group">
+                <button 
+                  type="button" 
+                  className="btn btn-skip"
+                  onClick={onSkip}
+                >
+                  건너뛰기
+                </button>
                 {currentQuestionIndex > 0 && (
                   <button 
                     type="button" 
@@ -562,6 +571,17 @@ const FollowUpQuestionsPage: React.FC<FollowUpQuestionsPageProps> = ({
         .btn-secondary:hover {
           transform: translateY(-2px);
           box-shadow: 0 6px 20px rgba(117, 117, 117, 0.4);
+        }
+
+        .btn-skip {
+          background: linear-gradient(135deg, #ff9800, #ffb74d);
+          color: white;
+          box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+        }
+
+        .btn-skip:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
         }
       `}</style>
     </div>

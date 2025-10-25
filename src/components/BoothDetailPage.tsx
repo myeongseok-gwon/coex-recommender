@@ -5,11 +5,12 @@ import { evaluationService, userService } from '../services/supabase';
 interface BoothDetailPageProps {
   user: User;
   booth: Booth;
+  rationale?: string;
   onBack: () => void;
   onUserUpdate: (user: User) => void;
 }
 
-const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, onUserUpdate }) => {
+const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, rationale, onBack, onUserUpdate }) => {
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [loading, setLoading] = useState(true);
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -238,17 +239,12 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, onBack, 
           </p>
         )}
 
-        <div className="card-description">
-          {booth.company_description}
-        </div>
-
-        {booth.products && (
+        {rationale && (
           <div style={{ marginTop: '16px' }}>
-            <h4 style={{ marginBottom: '8px', color: '#333' }}>주요 제품</h4>
-            <p style={{ color: '#666', marginBottom: '8px' }}>{booth.products}</p>
-            {booth.products_description && (
-              <p style={{ color: '#888', fontSize: '14px' }}>{booth.products_description}</p>
-            )}
+            <h4 style={{ marginBottom: '8px', color: '#333' }}>추천 이유</h4>
+            <div className="card-description">
+              {rationale}
+            </div>
           </div>
         )}
 

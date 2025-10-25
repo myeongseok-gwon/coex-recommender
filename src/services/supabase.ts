@@ -26,6 +26,56 @@ export const userService = {
     if (error) throw error;
   },
 
+  async createUser(userId: string) {
+    const { data, error } = await supabase
+      .from('user')
+      .insert({
+        user_id: userId,
+        initial_form_started_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async updateInitialFormStartedAt(userId: string) {
+    const { error } = await supabase
+      .from('user')
+      .update({ initial_form_started_at: new Date().toISOString() })
+      .eq('user_id', userId);
+    
+    if (error) throw error;
+  },
+
+  async updateInitialFormSubmittedAt(userId: string) {
+    const { error } = await supabase
+      .from('user')
+      .update({ initial_form_submitted_at: new Date().toISOString() })
+      .eq('user_id', userId);
+    
+    if (error) throw error;
+  },
+
+  async updateSkippedAt(userId: string) {
+    const { error } = await supabase
+      .from('user')
+      .update({ skipped_at: new Date().toISOString() })
+      .eq('user_id', userId);
+    
+    if (error) throw error;
+  },
+
+  async updateAdditionalFormSubmittedAt(userId: string) {
+    const { error } = await supabase
+      .from('user')
+      .update({ additional_form_submitted_at: new Date().toISOString() })
+      .eq('user_id', userId);
+    
+    if (error) throw error;
+  },
+
   async uploadPhoto(userId: string, file: File, boothId?: string) {
     const fileExt = file.name.split('.').pop();
     const fileName = boothId 
@@ -67,6 +117,7 @@ export const userService = {
     // 명시적으로 필요한 필드만 추가
     if (formData.age !== undefined) updateData.age = formData.age;
     if (formData.gender !== undefined) updateData.gender = formData.gender;
+    if (formData.visitPurpose !== undefined) updateData.visit_purpose = formData.visitPurpose;
     if (formData.interests !== undefined) updateData.interests = formData.interests;
     
     const { error } = await supabase
@@ -339,5 +390,86 @@ export const boothPositionService = {
       .eq('booth_id', boothId);
     
     if (error) throw error;
+  }
+};
+
+export const gpsTrackingService = {
+  async createTracking(userId: string, trackingData: any) {
+    const { data, error } = await supabase
+      .from('gps_tracking')
+      .insert({
+        user_id: userId,
+        total_points: trackingData.totalPoints,
+        total_distance: trackingData.totalDistance,
+        duration: trackingData.duration,
+        locations: trackingData.locations
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async getTracking(userId: string) {
+    const { data, error } = await supabase
+      .from('gps_tracking')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  },
+
+  async updateTracking(id: number, trackingData: any) {
+    const { data, error } = await supabase
+      .from('gps_tracking')
+      .update({
+        total_points: trackingData.totalPoints,
+        total_distance: trackingData.totalDistance,
+        duration: trackingData.duration,
+        locations: trackingData.locations,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  },
+
+  async sendRealtimeLocation(userId: string, location: any) {
+    console.log('📡 Supabase에 GPS 데이터 전송 중:', {
+      userId,
+      location,
+      table: 'gps_locations'
+    });
+    
+    const insertData = {
+      user_id: userId,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      accuracy: location.accuracy,
+      timestamp: location.timestamp,
+      altitude: location.altitude,
+      speed: location.speed,
+      heading: location.heading
+    };
+    
+    console.log('📡 삽입할 데이터:', insertData);
+    
+    const { data, error } = await supabase
+      .from('gps_locations')
+      .insert(insertData);
+    
+    if (error) {
+      console.error('❌ Supabase GPS 데이터 삽입 오류:', error);
+      throw error;
+    }
+    
+    console.log('✅ Supabase GPS 데이터 삽입 성공:', data);
+    return data;
   }
 };

@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { User, UserFormData } from '../types';
+import { UserFormData } from '../types';
 
 interface UserFormPageProps {
-  user: User;
   onSubmit: (formData: UserFormData) => void;
-  onNext: (formData: UserFormData) => void;
   onBack: () => void;
 }
 
@@ -63,28 +61,30 @@ const INTEREST_CATEGORIES = {
   },
 };
 
-const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onNext, onBack }) => {
+const UserFormPage: React.FC<UserFormPageProps> = ({ onSubmit, onBack }) => {
   const [formData, setFormData] = useState<UserFormData>({
     age: 0,
     gender: '',
+    visitPurpose: '',
     interests: {}
   });
-
-  // Type A는 simplified form (less questions)
-  // Type B, C는 full form (many questions)
-  const isTypeA = user.type === 'A';
 
   // 이모지 제거 함수
   const removeEmojis = (text: string): string => {
     return text.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA00}-\u{1FA6F}]|[\u{1FA70}-\u{1FAFF}]|[\u{FE00}-\u{FE0F}]|[\u{1F1E0}-\u{1F1FF}]|[\u{E0020}-\u{E007F}]|[\u{20D0}-\u{20FF}]|[\u{2300}-\u{23FF}]|[\u{2B50}]|[\u{231A}-\u{231B}]|[\u{23E9}-\u{23EC}]|[\u{23F0}]|[\u{23F3}]|[\u{25FD}-\u{25FE}]|[\u{2614}-\u{2615}]|[\u{2648}-\u{2653}]|[\u{267F}]|[\u{2693}]|[\u{26A1}]|[\u{26AA}-\u{26AB}]|[\u{26BD}-\u{26BE}]|[\u{26C4}-\u{26C5}]|[\u{26CE}]|[\u{26D4}]|[\u{26EA}]|[\u{26F2}-\u{26F3}]|[\u{26F5}]|[\u{26FA}]|[\u{26FD}]|[\u{2705}]|[\u{270A}-\u{270B}]|[\u{2728}]|[\u{274C}]|[\u{274E}]|[\u{2753}-\u{2755}]|[\u{2757}]|[\u{2795}-\u{2797}]|[\u{27B0}]|[\u{27BF}]|[\u{2B1B}-\u{2B1C}]/gu, '').trim();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // 필수 필드 검증
     if (!formData.age || !formData.gender) {
       alert('나이와 성별을 입력해주세요.');
+      return;
+    }
+
+    if (!formData.visitPurpose) {
+      alert('전시회 방문 목적을 선택해주세요.');
       return;
     }
 
@@ -110,12 +110,8 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onNext, onB
       interests: cleanedInterests
     };
 
-    // Type A는 바로 추천, Type B/C는 다음 페이지로
-    if (isTypeA) {
-      onSubmit(cleanedFormData);
-    } else {
-      onNext(cleanedFormData);
-    }
+    // 바로 추천 생성
+    onSubmit(cleanedFormData);
   };
 
   const handleInputChange = (field: keyof UserFormData, value: string | number) => {
@@ -205,6 +201,42 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onNext, onB
 
         <div className="form-group">
           <label className="form-label">
+            전시회 방문 목적 *
+          </label>
+          <div className="purpose-options">
+            <label className={`purpose-option ${formData.visitPurpose === '명확한 목표' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="visitPurpose"
+                value="명확한 목표"
+                checked={formData.visitPurpose === '명확한 목표'}
+                onChange={(e) => handleInputChange('visitPurpose', e.target.value)}
+                required
+              />
+              <div className="purpose-content">
+                <div className="purpose-icon">🎯</div>
+                <div className="purpose-text">집중 탐색할 상품/카테고리가 이미 있습니다.</div>
+              </div>
+            </label>
+            <label className={`purpose-option ${formData.visitPurpose === '탐색 및 둘러보기' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="visitPurpose"
+                value="탐색 및 둘러보기"
+                checked={formData.visitPurpose === '탐색 및 둘러보기'}
+                onChange={(e) => handleInputChange('visitPurpose', e.target.value)}
+                required
+              />
+              <div className="purpose-content">
+                <div className="purpose-icon">🔍</div>
+                <div className="purpose-text">다양하게 둘러보면서 탐색하려고 합니다.</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">
             관심사 선택 *
           </label>
           <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
@@ -249,11 +281,18 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onNext, onB
         </div>
 
         <button type="submit" className="btn btn-primary">
-          {isTypeA ? '추천 받기' : '다음'}
+          추천 받기
         </button>
       </form>
 
       <style>{`
+        .container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 20px;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
         .top-nav-bar {
           display: flex;
           justify-content: space-between;
@@ -263,6 +302,7 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onNext, onB
           padding: 16px 24px;
           margin: 0 0 20px 0;
           border-bottom: 3px solid #1565c0;
+          border-radius: 8px;
         }
 
         .nav-left {
@@ -371,6 +411,63 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ user, onSubmit, onNext, onB
         .chip:focus {
           outline: none;
           box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.3);
+        }
+
+        .purpose-options {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .purpose-option {
+          position: relative;
+          display: block;
+          padding: 16px;
+          border: 2px solid #e0e0e0;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.2s;
+          background: #fff;
+        }
+
+        .purpose-option:hover {
+          border-color: #1976d2;
+          background: #f8f9fa;
+        }
+
+        .purpose-option.selected {
+          border-color: #1976d2;
+          background: #e3f2fd;
+          box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
+        }
+
+        .purpose-option input[type="radio"] {
+          position: absolute;
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+
+        .purpose-content {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .purpose-icon {
+          font-size: 1.5rem;
+          flex-shrink: 0;
+        }
+
+        .purpose-text {
+          font-size: 0.95rem;
+          color: #333;
+          line-height: 1.4;
+        }
+
+        .purpose-option.selected .purpose-text {
+          font-weight: 600;
+          color: #0d47a1;
         }
       `}</style>
     </div>
