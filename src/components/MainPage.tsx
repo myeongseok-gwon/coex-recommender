@@ -33,6 +33,12 @@ const MainPage: React.FC<MainPageProps> = ({
 
   // 사용자 상호작용 시 GPS 전송
   const handleUserInteraction = async () => {
+    // 완료된 사용자는 GPS 전송하지 않음
+    if (isUserCompleted) {
+      console.log('⏭️ 완료된 사용자 - GPS 전송 건너뜀');
+      return;
+    }
+    
     console.log('👆 handleUserInteraction 호출됨', { 
       hasGpsService: !!window.gpsService,
       gpsServiceUserId: window.gpsService?.userId 
@@ -251,9 +257,11 @@ const MainPage: React.FC<MainPageProps> = ({
         <div className="nav-left" onClick={onBack}>
           ← 뒤로가기
         </div>
-        <div className="nav-right" onClick={onExit}>
-          퇴장
-        </div>
+        {!isUserCompleted && (
+          <div className="nav-right" onClick={onExit}>
+            퇴장
+          </div>
+        )}
       </div>
 
 

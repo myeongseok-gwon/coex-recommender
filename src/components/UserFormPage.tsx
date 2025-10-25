@@ -66,7 +66,10 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ onSubmit, onBack }) => {
     age: 0,
     gender: '',
     visitPurpose: '',
-    interests: {}
+    interests: {},
+    hasCompanion: false,
+    companionCount: 0,
+    specificGoal: ''
   });
 
   // 이모지 제거 함수
@@ -92,6 +95,18 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ onSubmit, onBack }) => {
     const hasInterests = formData.interests && Object.keys(formData.interests).length > 0;
     if (!hasInterests) {
       alert('관심사를 선택해주세요.');
+      return;
+    }
+
+    // 동행 정보 검증
+    if (formData.hasCompanion && (!formData.companionCount || formData.companionCount < 1)) {
+      alert('동행이 있다면 인원수를 입력해주세요.');
+      return;
+    }
+
+    // 목적이 "명확한 목표"인 경우 specific_goal 검증
+    if (formData.visitPurpose === '명확한 목표' && !formData.specificGoal?.trim()) {
+      alert('구체적인 목표를 입력해주세요.');
       return;
     }
 
@@ -234,6 +249,93 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ onSubmit, onBack }) => {
             </label>
           </div>
         </div>
+
+        {/* 명확한 목표를 선택한 경우 구체적인 목표 입력 */}
+        {formData.visitPurpose === '명확한 목표' && (
+          <div className="form-group">
+            <label htmlFor="specificGoal" className="form-label">
+              무엇을 집중해서 보고 싶으신가요? *
+            </label>
+            <textarea
+              id="specificGoal"
+              className="form-textarea"
+              value={formData.specificGoal || ''}
+              onChange={(e) => handleInputChange('specificGoal', e.target.value)}
+              placeholder="예: 유기농 채소, 건강기능식품, 베이커리 제품 등"
+              rows={3}
+              required
+            />
+          </div>
+        )}
+
+        {/* 동행 정보 */}
+        <div className="form-group">
+          <label className="form-label">
+            함께 다니는 동행이 있나요?
+          </label>
+          <div className="companion-options">
+            <label className={`companion-option ${!formData.hasCompanion ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="hasCompanion"
+                value="false"
+                checked={!formData.hasCompanion}
+                onChange={() => {
+                  setFormData(prev => ({
+                    ...prev,
+                    hasCompanion: false,
+                    companionCount: 0
+                  }));
+                }}
+              />
+              <div className="companion-content">
+                <div className="companion-icon">👤</div>
+                <div className="companion-text">혼자 방문</div>
+              </div>
+            </label>
+            <label className={`companion-option ${formData.hasCompanion ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="hasCompanion"
+                value="true"
+                checked={formData.hasCompanion}
+                onChange={() => {
+                  setFormData(prev => ({
+                    ...prev,
+                    hasCompanion: true,
+                    companionCount: 1
+                  }));
+                }}
+              />
+              <div className="companion-content">
+                <div className="companion-icon">👥</div>
+                <div className="companion-text">동행과 함께</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        {/* 동행이 있는 경우 인원수 입력 */}
+        {formData.hasCompanion && (
+          <div className="form-group">
+            <label htmlFor="companionCount" className="form-label">
+              동행 인원수 (본인 제외) *
+            </label>
+            <select
+              id="companionCount"
+              className="form-select"
+              value={formData.companionCount || 1}
+              onChange={(e) => handleInputChange('companionCount', parseInt(e.target.value))}
+              required
+            >
+              <option value={1}>1명</option>
+              <option value={2}>2명</option>
+              <option value={3}>3명</option>
+              <option value={4}>4명</option>
+              <option value={5}>5명 이상</option>
+            </select>
+          </div>
+        )}
 
         <div className="form-group">
           <label className="form-label">
@@ -466,6 +568,81 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ onSubmit, onBack }) => {
         }
 
         .purpose-option.selected .purpose-text {
+          font-weight: 600;
+          color: #0d47a1;
+        }
+
+        .form-textarea {
+          width: 100%;
+          padding: 12px;
+          border: 2px solid #e0e0e0;
+          border-radius: 8px;
+          font-size: 1rem;
+          font-family: inherit;
+          resize: vertical;
+          min-height: 80px;
+          transition: border-color 0.2s;
+        }
+
+        .form-textarea:focus {
+          outline: none;
+          border-color: #1976d2;
+          box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+        }
+
+        .companion-options {
+          display: flex;
+          gap: 12px;
+        }
+
+        .companion-option {
+          position: relative;
+          display: block;
+          flex: 1;
+          padding: 16px;
+          border: 2px solid #e0e0e0;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.2s;
+          background: #fff;
+        }
+
+        .companion-option:hover {
+          border-color: #1976d2;
+          background: #f8f9fa;
+        }
+
+        .companion-option.selected {
+          border-color: #1976d2;
+          background: #e3f2fd;
+          box-shadow: 0 2px 8px rgba(25, 118, 210, 0.2);
+        }
+
+        .companion-option input[type="radio"] {
+          position: absolute;
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+
+        .companion-content {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .companion-icon {
+          font-size: 1.5rem;
+        }
+
+        .companion-text {
+          font-size: 0.95rem;
+          color: #333;
+          font-weight: 500;
+        }
+
+        .companion-option.selected .companion-text {
           font-weight: 600;
           color: #0d47a1;
         }

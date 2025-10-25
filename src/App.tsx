@@ -13,6 +13,7 @@ import BoothDetailPage from './components/BoothDetailPage';
 import MapPage from './components/MapPage';
 import SurveyPage from './components/SurveyPage';
 import CompletePage from './components/CompletePage';
+import ExitRatingModal from './components/ExitRatingModal';
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>({
@@ -26,6 +27,7 @@ const App: React.FC = () => {
   });
 
   const [followUpData, setFollowUpData] = useState<{ summary: string; questions: string[] } | null>(null);
+  const [showExitRatingModal, setShowExitRatingModal] = useState(false);
 
   useEffect(() => {
     // 부스 데이터 로드
@@ -253,8 +255,8 @@ const App: React.FC = () => {
           currentPage: 'recommendations'
         }));
         
-        // GPS 추적 시작
-        await startGPSTracking(userData.user_id);
+        // 완료된 사용자는 GPS 추적 시작하지 않음
+        console.log('⏭️ 완료된 사용자 - GPS 추적 시작하지 않음');
         return;
       }
 
@@ -434,7 +436,16 @@ const App: React.FC = () => {
   ): string => {
     let info = `나이: ${formData.age}세\n`;
     info += `성별: ${formData.gender}\n`;
-    // 방문 목적 정보는 LLM에 전달하지 않음
+    
+    // 방문 목적 정보 추가
+    if (formData.visitPurpose) {
+      info += `방문 목적: ${formData.visitPurpose}\n`;
+      
+      // 명확한 목표인 경우 구체적인 목표 정보 추가
+      if (formData.visitPurpose === '명확한 목표' && formData.specificGoal) {
+        info += `구체적인 목표: ${formData.specificGoal}\n`;
+      }
+    }
     
     const interestEntries = formData.interests ? Object.entries(formData.interests) : [];
     
@@ -526,39 +537,61 @@ const App: React.FC = () => {
   const handleExit = () => {
     console.log('🚪 App.tsx: handleExit 호출됨');
     
-    // 퇴장 확인 모달 표시
-    const confirmed = window.confirm('정말로 퇴장하시겠습니까?');
+    // 별점 수집 모달 표시
+    setShowExitRatingModal(true);
+  };
+
+  const handleExitRatingSubmit = async (recommendationRating: number, exhibitionRating: number) => {
+    console.log('⭐ 별점 제출:', { recommendationRating, exhibitionRating });
     
-    if (confirmed) {
-      console.log('✅ 사용자가 퇴장을 확인함');
-      
-      // GPS 추적 중지
-      if (window.gpsService) {
-        console.log('🛑 GPS 추적 중지 중...');
-        window.gpsService.stopTracking();
-        console.log('✅ GPS 추적 중지 완료');
-        
-        // GPS 서비스 정리
-        window.gpsService = null;
-      } else {
-        console.log('⚠️ GPS 서비스가 없음');
+    try {
+      // 종료시점 저장 (ended_at 업데이트)
+      if (state.currentUser) {
+        await userService.updateUserFormData(state.currentUser.user_id, {});
+        console.log('✅ 종료시점 저장 완료');
       }
-      
-      // 앱 초기화
-      console.log('🔄 앱 상태 초기화 중...');
-      setState({
-        currentUser: null,
-        userFormData: null,
-        recommendations: [],
-        boothData: [],
-        currentPage: 'landing',
-        selectedBooth: null,
-        evaluation: null
-      });
-      console.log('✅ 앱 상태 초기화 완료');
-    } else {
-      console.log('❌ 사용자가 퇴장을 취소함');
+
+      // 별점 저장
+      if (state.currentUser) {
+        await userService.updateExitRatings(state.currentUser.user_id, recommendationRating, exhibitionRating);
+        console.log('✅ 별점 저장 완료');
+      }
+    } catch (error) {
+      console.error('❌ 별점 저장 오류:', error);
     }
+
+    // 모달 닫기
+    setShowExitRatingModal(false);
+    
+    // GPS 추적 중지
+    if (window.gpsService) {
+      console.log('🛑 GPS 추적 중지 중...');
+      window.gpsService.stopTracking();
+      console.log('✅ GPS 추적 중지 완료');
+      
+      // GPS 서비스 정리
+      window.gpsService = null;
+    } else {
+      console.log('⚠️ GPS 서비스가 없음');
+    }
+    
+    // 앱 초기화
+    console.log('🔄 앱 상태 초기화 중...');
+    setState({
+      currentUser: null,
+      userFormData: null,
+      recommendations: [],
+      boothData: [],
+      currentPage: 'landing',
+      selectedBooth: null,
+      evaluation: null
+    });
+    console.log('✅ 앱 상태 초기화 완료');
+  };
+
+  const handleExitRatingCancel = () => {
+    console.log('❌ 별점 수집 취소');
+    setShowExitRatingModal(false);
   };
 
   const renderCurrentPage = () => {
@@ -649,6 +682,14 @@ const App: React.FC = () => {
   return (
     <div className="App">
       {renderCurrentPage()}
+      
+      {/* 별점 수집 모달 */}
+      {showExitRatingModal && (
+        <ExitRatingModal
+          onClose={handleExitRatingCancel}
+          onSubmit={handleExitRatingSubmit}
+        />
+      )}
     </div>
   );
 };

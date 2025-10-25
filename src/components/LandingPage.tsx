@@ -146,6 +146,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onUserValid }) => {
       <div className="header">
         <h1>COEX 추천 시스템</h1>
         <p>전화번호를 입력해주세요. (로그인 및 추첨 목적)</p>
+        <div className="location-notice">
+          <p>📍 위치 정보 수집 동의는 서비스 개선에 큰 도움이 됩니다</p>
+        </div>
       </div>
 
     
@@ -211,6 +214,22 @@ const LandingPage: React.FC<LandingPageProps> = ({ onUserValid }) => {
           font-size: 1rem;
           color: #666;
           margin: 0;
+        }
+
+        .location-notice {
+          margin-top: 12px;
+          padding: 8px 12px;
+          background-color: #f0f9ff;
+          border: 1px solid #bae6fd;
+          border-radius: 6px;
+          text-align: center;
+        }
+
+        .location-notice p {
+          font-size: 0.9rem;
+          color: #0369a1;
+          margin: 0;
+          font-weight: 500;
         }
 
         .form-group {

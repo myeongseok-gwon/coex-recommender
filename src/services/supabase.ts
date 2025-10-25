@@ -119,6 +119,9 @@ export const userService = {
     if (formData.gender !== undefined) updateData.gender = formData.gender;
     if (formData.visitPurpose !== undefined) updateData.visit_purpose = formData.visitPurpose;
     if (formData.interests !== undefined) updateData.interests = formData.interests;
+    if (formData.hasCompanion !== undefined) updateData.has_companion = formData.hasCompanion;
+    if (formData.companionCount !== undefined) updateData.companion_count = formData.companionCount;
+    if (formData.specificGoal !== undefined) updateData.specific_goal = formData.specificGoal;
     
     const { error } = await supabase
       .from('user')
@@ -192,6 +195,19 @@ export const userService = {
         final_pros: finalPros,
         final_cons: finalCons,
         survey_finished_at: new Date().toISOString()
+      })
+      .eq('user_id', userId);
+    
+    if (error) throw error;
+  },
+
+  async updateExitRatings(userId: string, recommendationRating: number, exhibitionRating: number) {
+    const { error } = await supabase
+      .from('user')
+      .update({
+        exit_recommendation_rating: recommendationRating,
+        exit_exhibition_rating: exhibitionRating,
+        exit_ratings_submitted_at: new Date().toISOString()
       })
       .eq('user_id', userId);
     

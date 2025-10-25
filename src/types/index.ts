@@ -4,6 +4,9 @@ export interface User {
   gender?: string;
   visit_purpose?: string;
   interests?: Record<string, string[]>;
+  has_companion?: boolean;
+  companion_count?: number;
+  specific_goal?: string;
   followup_questions?: string;
   followup_answers?: string;
   initial_form_started_at?: string;
@@ -58,6 +61,9 @@ export interface UserFormData {
   gender: string;
   visitPurpose?: string;
   interests?: Record<string, string[]>;
+  hasCompanion?: boolean;
+  companionCount?: number;
+  specificGoal?: string;
 }
 
 export interface BoothPosition {
