@@ -214,12 +214,36 @@ const App: React.FC = () => {
       if (userData.skipped_at || userData.additional_form_submitted_at) {
         // 완료된 사용자 - 메인 페이지로
         // 추천 결과가 있는 경우 파싱하여 전달
-        const recommendations = userData.rec_result ? dedupeRecommendations(JSON.parse(userData.rec_result)) : [];
+        console.log('완료된 사용자 데이터 확인:', {
+          userId: userData.user_id,
+          hasRecResult: !!userData.rec_result,
+          recResultType: typeof userData.rec_result,
+          recResultLength: userData.rec_result ? userData.rec_result.length : 0,
+          recResultPreview: userData.rec_result ? userData.rec_result.substring(0, 200) + '...' : 'null'
+        });
         
-        console.log('완료된 사용자 로그인:', {
+        let recommendations = [];
+        if (userData.rec_result) {
+          try {
+            const parsedResult = JSON.parse(userData.rec_result);
+            console.log('추천 데이터 파싱 성공:', {
+              parsedType: typeof parsedResult,
+              isArray: Array.isArray(parsedResult),
+              length: Array.isArray(parsedResult) ? parsedResult.length : 'not array'
+            });
+            recommendations = dedupeRecommendations(parsedResult);
+          } catch (error) {
+            console.error('추천 데이터 파싱 오류:', error);
+            console.error('원본 데이터:', userData.rec_result);
+            recommendations = [];
+          }
+        }
+        
+        console.log('최종 추천 데이터:', {
           userId: userData.user_id,
           hasRecommendations: recommendations.length > 0,
-          recommendationsCount: recommendations.length
+          recommendationsCount: recommendations.length,
+          recommendations: recommendations
         });
         
         setState(prev => ({
@@ -410,7 +434,7 @@ const App: React.FC = () => {
   ): string => {
     let info = `나이: ${formData.age}세\n`;
     info += `성별: ${formData.gender}\n`;
-    info += `방문 목적: ${formData.visitPurpose}\n`;
+    // 방문 목적 정보는 LLM에 전달하지 않음
     
     const interestEntries = formData.interests ? Object.entries(formData.interests) : [];
     

@@ -27,6 +27,9 @@ const MainPage: React.FC<MainPageProps> = ({
   const [selectedBoothForRating, setSelectedBoothForRating] = useState<Booth | null>(null);
   const [evaluatedBooths, setEvaluatedBooths] = useState<{booth: Booth, rating: number}[]>([]);
   const [loadingEvaluations, setLoadingEvaluations] = useState(true);
+  
+  // 사용자가 완료된 상태인지 확인 (퇴장 후 재입장 시 평가 추가 방지)
+  const isUserCompleted = user.skipped_at || user.additional_form_submitted_at;
 
   // 사용자 상호작용 시 GPS 전송
   const handleUserInteraction = async () => {
@@ -125,6 +128,14 @@ const MainPage: React.FC<MainPageProps> = ({
       case 'recommendations':
         return (
           <div className="tab-content">
+            {isUserCompleted && (
+              <div className="recommendations-header">
+                <div className="recommendations-info">
+                  <h2>📋 이전에 받은 추천</h2>
+                  <p>이전에 받았던 부스 추천을 확인하실 수 있습니다.</p>
+                </div>
+              </div>
+            )}
             {recommendations.length > 0 ? (
               <div className="recommendations-list">
                 {recommendations.map((rec) => {
@@ -150,12 +161,16 @@ const MainPage: React.FC<MainPageProps> = ({
             ) : (
               <div className="no-recommendations">
                 <h3>추천 결과가 없습니다</h3>
-                <p>아직 추천을 받지 못했습니다. 잠시 후 다시 시도해주세요.</p>
+                {isUserCompleted ? (
+                  <p>이전에 받았던 추천 데이터를 찾을 수 없습니다. 시스템 관리자에게 문의해주세요.</p>
+                ) : (
+                  <p>아직 추천을 받지 못했습니다. 잠시 후 다시 시도해주세요.</p>
+                )}
                 <button 
                   className="btn btn-primary"
                   onClick={onBack}
                 >
-                  다시 시작하기
+                  {isUserCompleted ? '돌아가기' : '다시 시작하기'}
                 </button>
               </div>
             )}
@@ -166,12 +181,20 @@ const MainPage: React.FC<MainPageProps> = ({
         return (
           <div className="tab-content">
             <div className="evaluation-section">
-              <button 
-                className="btn btn-primary add-evaluation-btn"
-                onClick={() => setShowBoothSearch(true)}
-              >
-                + 부스 평가 추가하기
-              </button>
+              {!isUserCompleted ? (
+                <button 
+                  className="btn btn-primary add-evaluation-btn"
+                  onClick={() => setShowBoothSearch(true)}
+                >
+                  + 부스 평가 추가하기
+                </button>
+              ) : (
+                <div className="completed-user-message">
+                  <div className="message-icon">✅</div>
+                  <h3>평가가 완료되었습니다</h3>
+                  <p>이미 모든 평가를 완료하셨습니다. 평가한 부스들을 확인하실 수 있습니다.</p>
+                </div>
+              )}
               <div className="evaluated-booths">
                 <h3>평가한 부스들</h3>
                 <div className="evaluated-list">
@@ -569,6 +592,58 @@ const MainPage: React.FC<MainPageProps> = ({
           font-size: 1rem;
           margin-bottom: 24px;
           line-height: 1.6;
+        }
+
+        .completed-user-message {
+          background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
+          border: 2px solid #4caf50;
+          border-radius: 12px;
+          padding: 24px;
+          text-align: center;
+          margin-bottom: 30px;
+          box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+        }
+
+        .message-icon {
+          font-size: 2.5rem;
+          margin-bottom: 16px;
+        }
+
+        .completed-user-message h3 {
+          color: #2e7d32;
+          font-size: 1.3rem;
+          margin-bottom: 12px;
+          font-weight: 600;
+        }
+
+        .completed-user-message p {
+          color: #4caf50;
+          font-size: 1rem;
+          margin: 0;
+          line-height: 1.5;
+        }
+
+        .recommendations-header {
+          background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+          border: 2px solid #2196f3;
+          border-radius: 12px;
+          padding: 20px;
+          margin-bottom: 24px;
+          box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2);
+        }
+
+        .recommendations-info h2 {
+          color: #1976d2;
+          font-size: 1.4rem;
+          margin-bottom: 8px;
+          font-weight: 600;
+        }
+
+        .recommendations-info p {
+          color: #1976d2;
+          font-size: 1rem;
+          margin: 0;
+          line-height: 1.5;
         }
       `}</style>
     </div>
