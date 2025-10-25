@@ -1,5 +1,5 @@
 import { gpsTrackingService } from '../services/supabase';
-import { GpsLocation, GpsTracking } from '../types';
+import { GpsLocation } from '../types';
 
 export class GpsTracker {
   private watchId: number | null = null;
