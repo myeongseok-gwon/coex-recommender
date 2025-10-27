@@ -224,7 +224,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onUserValid }) => {
           display: flex;
           flex-direction: column;
           justify-content: center;
-          margin-top: 40px;
           box-sizing: border-box;
         }
 
