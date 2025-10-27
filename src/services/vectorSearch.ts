@@ -188,7 +188,7 @@ export function convertUserProfileToText(userProfile: UserProfile): string {
 // Gemini Embedding을 통한 임베딩 생성
 export async function generateEmbedding(text: string): Promise<number[]> {
   try {
-    const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyDddxRP01zkqcwaAnsa5mWNC8r7FwhXwdw';
+    const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY || 'GEMINI_API_KEY';
     
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${geminiApiKey}`, {
       method: 'POST',

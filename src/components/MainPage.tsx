@@ -32,6 +32,15 @@ const MainPage: React.FC<MainPageProps> = ({
   
   // 사용자가 완료된 상태인지 확인 (퇴장 후 재입장 시 평가 추가 방지)
   const isUserCompleted = user.exit_ratings_submitted_at;
+  
+  // 디버깅: Props 확인
+  console.log('🏠 MainPage 렌더링:', {
+    userId: user.user_id,
+    recommendationsCount: recommendations.length,
+    boothDataCount: boothData.length,
+    isUserCompleted,
+    recommendations: recommendations.slice(0, 3)
+  });
 
   // 추천 사유 토글 함수
   const toggleRationale = (boothId: string) => {
@@ -102,7 +111,14 @@ const MainPage: React.FC<MainPageProps> = ({
     const loadExistingEvaluations = async () => {
       try {
         setLoadingEvaluations(true);
+        console.log('📋 평가 데이터 로드 시작:', {
+          userId: user.user_id,
+          boothDataLength: boothData.length,
+          isUserCompleted
+        });
+        
         const evaluations = await evaluationService.getAllEvaluations(user.user_id);
+        console.log('📋 전체 평가 데이터:', evaluations);
         
         // 평가된 부스들의 정보를 가져와서 상태 업데이트
         const evaluatedBoothsWithRatings = evaluations
@@ -117,9 +133,9 @@ const MainPage: React.FC<MainPageProps> = ({
           .filter((item): item is {booth: Booth, rating: number} => item !== null);
         
         setEvaluatedBooths(evaluatedBoothsWithRatings);
-        console.log('기존 평가 데이터 로드 완료:', evaluatedBoothsWithRatings.length, '개');
+        console.log('✅ 기존 평가 데이터 로드 완료:', evaluatedBoothsWithRatings.length, '개');
       } catch (error) {
-        console.error('평가 데이터 로드 오류:', error);
+        console.error('❌ 평가 데이터 로드 오류:', error);
       } finally {
         setLoadingEvaluations(false);
       }
@@ -127,8 +143,13 @@ const MainPage: React.FC<MainPageProps> = ({
 
     if (user.user_id && boothData.length > 0) {
       loadExistingEvaluations();
+    } else {
+      console.warn('⚠️ 평가 데이터 로드 조건 미충족:', {
+        userId: user.user_id,
+        boothDataLength: boothData.length
+      });
     }
-  }, [user.user_id, boothData]);
+  }, [user.user_id, boothData, isUserCompleted]);
 
   const handleBoothSelect = (booth: Booth) => {
     setSelectedBoothForRating(booth);
@@ -169,6 +190,14 @@ const MainPage: React.FC<MainPageProps> = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case 'recommendations':
+        // 디버깅: 추천 데이터 확인
+        console.log('📊 추천 탭 렌더링:', {
+          recommendationsCount: recommendations.length,
+          userId: user.user_id,
+          isUserCompleted,
+          recommendations: recommendations.slice(0, 3)
+        });
+        
         return (
           <div className="tab-content">
             {isUserCompleted && (

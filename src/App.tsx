@@ -30,13 +30,23 @@ const App: React.FC = () => {
 
   const [followUpData, setFollowUpData] = useState<{ summary: string; questions: string[] } | null>(null);
   const [showExitRatingModal, setShowExitRatingModal] = useState(false);
+  const [isBoothDataLoading, setIsBoothDataLoading] = useState(true);
 
   useEffect(() => {
     // 부스 데이터 로드
     const loadData = async () => {
       try {
+        setIsBoothDataLoading(true);
+        console.log('📦 부스 데이터 로드 시작...');
         const boothData = await loadBoothData();
+        console.log('✅ 부스 데이터 로드 완료:', boothData.length, '개');
+        
+        if (boothData.length === 0) {
+          console.warn('⚠️ boothData가 비어있습니다.');
+        }
+        
         setState(prev => ({ ...prev, boothData }));
+        setIsBoothDataLoading(false);
         
         // sessionStorage에서 상태 복원 시도
         const savedState = sessionStorage.getItem('appState');
@@ -44,13 +54,14 @@ const App: React.FC = () => {
           try {
             const parsedState = JSON.parse(savedState);
             console.log('상태 복원:', parsedState);
+            console.log('boothData (로드된 것):', boothData.length, '개');
             setState(prev => ({
               ...prev,
               currentUser: parsedState.currentUser,
               currentPage: parsedState.currentPage,
               recommendations: parsedState.recommendations || [],
-              selectedBooth: parsedState.selectedBooth,
-              boothData // 부스 데이터는 새로 로드한 것 사용
+              selectedBooth: parsedState.selectedBooth
+              // boothData는 상위에서 이미 설정되었으므로 prev를 유지
             }));
           } catch (error) {
             console.error('상태 복원 오류:', error);
@@ -58,7 +69,8 @@ const App: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error('부스 데이터 로드 오류:', error);
+        console.error('❌ 부스 데이터 로드 오류:', error);
+        setIsBoothDataLoading(false);
       }
     };
     
@@ -229,7 +241,10 @@ const App: React.FC = () => {
           hasRecResult: !!userData.rec_result,
           recResultType: typeof userData.rec_result,
           recResultLength: userData.rec_result ? userData.rec_result.length : 0,
-          recResultPreview: userData.rec_result ? userData.rec_result.substring(0, 200) + '...' : 'null'
+          recResultPreview: userData.rec_result ? userData.rec_result.substring(0, 200) + '...' : 'null',
+          exit_ratings_submitted_at: userData.exit_ratings_submitted_at,
+          skipped_at: userData.skipped_at,
+          additional_form_submitted_at: userData.additional_form_submitted_at
         });
         
         let recommendations = [];
@@ -242,18 +257,24 @@ const App: React.FC = () => {
               length: Array.isArray(parsedResult) ? parsedResult.length : 'not array'
             });
             recommendations = dedupeRecommendations(parsedResult);
+            console.log('파싱된 추천 데이터 개수:', recommendations.length);
+            if (recommendations.length > 0) {
+              console.log('첫 번째 추천:', recommendations[0]);
+            }
           } catch (error) {
             console.error('추천 데이터 파싱 오류:', error);
             console.error('원본 데이터:', userData.rec_result);
             recommendations = [];
           }
+        } else {
+          console.warn('⚠️ rec_result가 없습니다. 사용자가 아직 추천을 받지 않았거나 데이터가 손실되었습니다.');
         }
         
         console.log('최종 추천 데이터:', {
           userId: userData.user_id,
           hasRecommendations: recommendations.length > 0,
           recommendationsCount: recommendations.length,
-          recommendations: recommendations
+          recommendations: recommendations.slice(0, 3) // 처음 3개만 로그
         });
         
         setState(prev => ({
@@ -731,17 +752,20 @@ const App: React.FC = () => {
   const handleThankYouComplete = () => {
     console.log('🙏 감사 메시지 완료 - 앱 초기화');
     
-    // 앱 초기화
+    // 세션 스토리지 초기화 (다음 세션에서 깨끗한 상태로 시작)
+    sessionStorage.clear();
+    
+    // 앱 초기화 (boothData는 유지 - 캐시됨)
     setState({
       currentUser: null,
       userFormData: null,
       recommendations: [],
-      boothData: [],
+      boothData: state.boothData, // boothData는 유지
       currentPage: 'landing',
       selectedBooth: null,
       evaluation: null
     });
-    console.log('✅ 앱 상태 초기화 완료');
+    console.log('✅ 앱 상태 초기화 완료 (boothData 유지)');
   };
 
   const renderCurrentPage = () => {
@@ -776,6 +800,22 @@ const App: React.FC = () => {
       
       case 'recommendations':
         if (!state.currentUser) return null;
+        // boothData가 로딩 중이면 로딩 페이지 표시
+        if (isBoothDataLoading) {
+          console.log('⏳ boothData 로딩 중...');
+          return <LoadingPage />;
+        }
+        // boothData가 비어있으면 에러 표시
+        if (state.boothData.length === 0) {
+          console.error('❌ boothData가 비어있습니다.');
+          return (
+            <div style={{ padding: '40px', textAlign: 'center' }}>
+              <h2>오류 발생</h2>
+              <p>부스 데이터를 불러오는데 실패했습니다.</p>
+              <button onClick={() => window.location.reload()}>페이지 새로고침</button>
+            </div>
+          );
+        }
         return (
           <MainPage
             user={state.currentUser}
@@ -788,6 +828,20 @@ const App: React.FC = () => {
       
       case 'map':
         if (!state.currentUser) return null;
+        // boothData가 로딩 중이면 로딩 페이지 표시
+        if (isBoothDataLoading) {
+          return <LoadingPage />;
+        }
+        // boothData가 비어있으면 에러 표시
+        if (state.boothData.length === 0) {
+          return (
+            <div style={{ padding: '40px', textAlign: 'center' }}>
+              <h2>오류 발생</h2>
+              <p>부스 데이터를 불러오는데 실패했습니다.</p>
+              <button onClick={() => window.location.reload()}>페이지 새로고침</button>
+            </div>
+          );
+        }
         return (
           <MapPage
             user={state.currentUser}

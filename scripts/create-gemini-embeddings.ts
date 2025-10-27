@@ -3,9 +3,9 @@ import fs from 'fs';
 import path from 'path';
 
 // 환경 변수 설정
-const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://ijglbateodrxlmkytypi.supabase.co';
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqZ2xiYXRlb2RyeGxta3l0eXBpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzODYyMTQsImV4cCI6MjA3NDk2MjIxNH0.5G3NsIrWOR4NPFMmM8gtMYfDLleezR4y2eLNeuPPvo0';
-const geminiApiKey = process.env.VITE_GEMINI_API_KEY || 'AIzaSyDddxRP01zkqcwaAnsa5mWNC8r7FwhXwdw';
+const supabaseUrl = process.env.VITE_SUPABASE_URL || "";
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || "";
+const geminiApiKey = process.env.VITE_GEMINI_API_KEY || "";
 
 // 클라이언트 초기화
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
