@@ -65,7 +65,6 @@ export interface Recommendation {
   id: string; // A1234, B5678 등의 문자열 형식
   rationale: string;
   similarity?: number; // 벡터 유사도 점수 (0-1)
-  sector?: string; // 이 추천이 어떤 섹터에서 왔는지 (신선식품, 가공식품 등)
 }
 
 export interface UserFormData {

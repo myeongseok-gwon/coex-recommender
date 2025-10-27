@@ -13,7 +13,6 @@ export interface BoothSearchResult {
   products: string;
   products_description: string;
   similarity: number;
-  sectors?: string[]; // 이 부스가 어떤 섹터에서 검색되었는지
 }
 
 export interface UserProfile {
@@ -346,7 +345,7 @@ export const vectorSearchService = {
     }
   },
 
-  // 섹터별 후보군 선별 (동적 섹터 수에 따라 조정, LLM에게 후보 제공)
+  // 전체 정보 기준 RAG 검색 (30개 후보 선정)
   async sectorBalancedSearch(
     userProfile: UserProfile,
     _keywordQuery?: string,
@@ -356,112 +355,55 @@ export const vectorSearchService = {
   ): Promise<BoothSearchResult[]> {
     try {
       const { matchThreshold = 0.3 } = options;
-      const sectors = Object.keys(SECTOR_MAPPING);
       
-      // 사용자가 선택한 섹터 수 계산
-      const selectedSectors = sectors.filter(sector => {
-        const sectorProfileText = convertUserProfileToTextBySector(userProfile, sector);
-        return sectorProfileText.trim() !== '';
+      console.log('=== RAG 후보군 선별 시작 ===');
+      console.log('목표 후보 수: 30개');
+      
+      // 전체 사용자 프로필 정보로 임베딩 생성
+      const profileText = convertUserProfileToText(userProfile);
+      console.log('사용자 프로필 텍스트:', profileText);
+      
+      const userEmbedding = await generateEmbedding(profileText);
+      
+      // 유사한 부스 검색 (Top 30)
+      console.log('🔍 RPC 함수 호출 준비...');
+      console.log('  - 임베딩 차원:', userEmbedding.length);
+      console.log('  - match_threshold:', matchThreshold);
+      console.log('  - match_count: 30');
+      
+      const { data, error } = await supabase.rpc('search_similar_booths', {
+        query_embedding: userEmbedding,
+        match_threshold: matchThreshold,
+        match_count: 30
       });
       
-      // 사용자 관심사 다양성 분석
-      const totalInterests = userProfile.interests ? 
-        Object.values(userProfile.interests).reduce((sum, items) => sum + items.length, 0) : 0;
-      
-      // 관심사가 적으면 더 많은 후보를 가져와서 중복을 보완
-      let targetTotal = 50;
-      if (totalInterests <= 3) {
-        targetTotal = 80; // 관심사가 적으면 더 많이 가져오기
-      } else if (totalInterests <= 6) {
-        targetTotal = 65; // 관심사가 보통이면 중간 정도
-      }
-      
-      // 섹터 수에 따라 동적으로 topPerSector 계산
-      const topPerSector = Math.max(1, Math.floor(targetTotal / selectedSectors.length));
-      
-      console.log('=== 섹터별 후보군 선별 시작 ===');
-      console.log('전체 섹터:', sectors);
-      console.log('선택된 섹터:', selectedSectors);
-      console.log(`사용자 관심사 총 개수: ${totalInterests}개`);
-      console.log(`목표 총 후보 수: ${targetTotal}개 (관심사 다양성에 따라 조정)`);
-      console.log(`섹터당 후보 수: ${topPerSector}개 (총 ${selectedSectors.length * topPerSector}개 예상)`);
-      
-      const allResults: BoothSearchResult[] = [];
-      const sectorResults: { [sector: string]: BoothSearchResult[] } = {};
-      
-      // 선택된 섹터별로만 후보 생성
-      for (const sector of selectedSectors) {
-        console.log(`\n🔍 ${sector} 섹터 후보 선별 중...`);
-        
-        const sectorProfileText = convertUserProfileToTextBySector(userProfile, sector);
-        console.log(`${sector} 프로필 텍스트:`, sectorProfileText);
-        
-        const sectorEmbedding = await generateEmbedding(sectorProfileText);
-        
-        const { data, error } = await supabase.rpc('search_similar_booths', {
-          query_embedding: sectorEmbedding,
-          match_threshold: matchThreshold,
-          match_count: topPerSector
+      if (error) {
+        console.error('❌ RAG 검색 오류 상세:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
         });
-        
-        if (error) {
-          console.error(`${sector} 섹터 검색 오류:`, error);
-          continue;
-        }
-        
-        const sectorBooths = data || [];
-        sectorResults[sector] = sectorBooths;
-        allResults.push(...sectorBooths);
-        
-        console.log(`${sector} 섹터 결과: ${sectorBooths.length}개`);
-        if (sectorBooths.length > 0) {
-          console.log(`  Top 3: ${sectorBooths.slice(0, 3).map((b: BoothSearchResult) => `${b.company_name_kor}(${b.similarity.toFixed(3)})`).join(', ')}`);
-        }
+        throw error;
       }
       
-      // 중복 제거 (같은 부스가 여러 섹터에서 나온 경우) - 섹터 정보 보존
-      const uniqueResults = new Map<string, BoothSearchResult>();
-      allResults.forEach(booth => {
-        const existing = uniqueResults.get(booth.id);
-        if (!existing) {
-          // 새로운 부스 - 첫 번째 섹터로 설정
-          const sector = Object.keys(sectorResults).find(s => 
-            sectorResults[s]?.some(sb => sb.id === booth.id)
-          ) || 'unknown';
-          uniqueResults.set(booth.id, { ...booth, sectors: [sector] });
-        } else {
-          // 기존 부스 - 섹터 추가
-          const sector = Object.keys(sectorResults).find(s => 
-            sectorResults[s]?.some(sb => sb.id === booth.id)
-          );
-          if (sector && existing.sectors && !existing.sectors.includes(sector)) {
-            existing.sectors.push(sector);
-          }
-          // 더 높은 유사도로 업데이트
-          if (booth.similarity > existing.similarity) {
-            Object.assign(existing, booth);
-          }
-        }
-      });
+      console.log('✅ RPC 함수 호출 성공');
       
-      // 유사도 기준으로 정렬
-      const sortedResults = Array.from(uniqueResults.values())
-        .sort((a, b) => b.similarity - a.similarity);
+      const results = (data || []) as BoothSearchResult[];
       
-      console.log(`\n📊 전체 후보군: ${sortedResults.length}개 (중복 제거 후)`);
-      console.log('섹터별 후보 분포:');
-      selectedSectors.forEach(sector => {
-        const count = sortedResults.filter(b => 
-          sectorResults[sector]?.some(sb => sb.id === b.id)
-        ).length;
-        console.log(`  ${sector}: ${count}개`);
-      });
+      console.log(`\n📊 RAG 후보군: ${results.length}개`);
+      if (results.length > 0) {
+        console.log('Top 5 유사도:');
+        results.slice(0, 5).forEach((b, idx) => {
+          console.log(`  ${idx + 1}. ${b.company_name_kor} - ${(b.similarity * 100).toFixed(1)}%`);
+        });
+      }
       
-      // LLM에게 모든 후보군 제공 (최종 선별은 LLM이 담당)
-      return sortedResults;
+      // LLM에게 30개 후보 제공 (최종 20개 선별은 LLM이 담당)
+      return results;
       
     } catch (error) {
-      console.error('섹터별 균형 검색 오류:', error);
+      console.error('RAG 검색 오류:', error);
       throw error;
     }
   },

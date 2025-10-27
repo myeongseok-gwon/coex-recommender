@@ -191,13 +191,12 @@ ${index + 1}. [ID: ${booth.id}] ${booth.company_name_kor}
       console.log('파싱된 추천 개수:', recommendations.length);
       console.log('파싱된 추천 첫 3개:', recommendations.slice(0, 3));
       
-      // 유사도와 섹터 정보를 추천에 추가
+      // 유사도 정보를 추천에 추가
       const recommendationsWithSimilarity = recommendations.map((rec: any) => {
         const searchResult = searchResults.find(sr => sr.id === rec.id);
         return {
           ...rec,
-          similarity: searchResult?.similarity || 0,
-          sector: searchResult?.sectors?.[0] || 'unknown' // 첫 번째 섹터 사용
+          similarity: searchResult?.similarity || 0
         };
       });
       
