@@ -3,6 +3,7 @@ import { AppState, User, UserFormData } from './types';
 import { loadBoothData } from './utils/dataLoader';
 import { userService } from './services/supabase';
 import { llmService } from './services/llm';
+import { vectorSearchService, UserProfile } from './services/vectorSearch';
 import { GPSService } from './services/gpsService';
 import LandingPage from './components/LandingPage';
 import UserFormPage from './components/UserFormPage';
@@ -14,6 +15,7 @@ import MapPage from './components/MapPage';
 import SurveyPage from './components/SurveyPage';
 import CompletePage from './components/CompletePage';
 import ExitRatingModal from './components/ExitRatingModal';
+import ThankYouPage from './components/ThankYouPage';
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>({
@@ -126,6 +128,7 @@ const App: React.FC = () => {
 
   const handleUserValid = async (userId: string, userData: any) => {
     console.log('🎯 App.tsx: handleUserValid 호출됨', { userId, userData });
+    console.log('🎯 받은 사용자 데이터 상세:', JSON.stringify(userData, null, 2));
     try {
       // Admin 모드 처리 (userId === '0')
       if (userId === '0') {
@@ -210,6 +213,11 @@ const App: React.FC = () => {
           recommendations,
           currentPage: 'recommendations'
         }));
+        
+        // 디버깅: 저장된 사용자 데이터 확인
+        console.log('=== 저장된 사용자 데이터 확인 ===');
+        console.log('userData 원본:', JSON.stringify(userData, null, 2));
+        console.log('User 타입으로 캐스팅 후:', JSON.stringify(userData as User, null, 2));
         return;
       }
 
@@ -255,6 +263,11 @@ const App: React.FC = () => {
           currentPage: 'recommendations'
         }));
         
+        // 디버깅: 완료된 사용자 데이터 확인
+        console.log('=== 완료된 사용자 데이터 확인 ===');
+        console.log('userData 원본:', JSON.stringify(userData, null, 2));
+        console.log('User 타입으로 캐스팅 후:', JSON.stringify(userData as User, null, 2));
+        
         // 완료된 사용자는 GPS 추적 시작하지 않음
         console.log('⏭️ 완료된 사용자 - GPS 추적 시작하지 않음');
         return;
@@ -276,6 +289,59 @@ const App: React.FC = () => {
     }
   };
 
+  // RAG 기반 추천 생성 함수
+  const generateRecommendationsWithRAG = async (user: User, userFormData: UserFormData, _followUpData?: Array<{ question: string; answer: string }> | null) => {
+    try {
+      // 사용자 프로필 구성 (추가 질문은 기록용으로만 사용, 추천 생성에는 제외)
+      const userProfile: UserProfile = {
+        age: userFormData.age,
+        gender: userFormData.gender,
+        visit_purpose: userFormData.visitPurpose,
+        interests: userFormData.interests,
+        has_companion: userFormData.hasCompanion,
+        companion_count: userFormData.companionCount,
+        specific_goal: userFormData.specificGoal,
+        // 새로운 선택 항목들 포함
+        has_children: userFormData.hasChildren,
+        child_interests: userFormData.childInterests,
+        has_pets: userFormData.hasPets,
+        pet_types: userFormData.petTypes,
+        has_allergies: userFormData.hasAllergies,
+        allergies: userFormData.allergies,
+        // followup_questions와 followup_answers는 추천 생성에서 제외 (기록용으로만 사용)
+        // followup_questions: followUpData?.map(qa => qa.question).join(', '),
+        // followup_answers: user.followup_answers
+      };
+
+      console.log('=== RAG 기반 추천 생성 시작 ===');
+      console.log('사용자 프로필 (추가 질문 제외):', userProfile);
+
+      // 벡터 검색 서비스 사용 가능 여부 확인
+      const embeddingsExist = await vectorSearchService.checkEmbeddingsExist();
+      
+      if (embeddingsExist) {
+        console.log('✅ 벡터 검색 서비스 사용 가능 - RAG 방식으로 추천 생성');
+        const rawRecommendations = await llmService.getRecommendationsWithRAG(userProfile);
+        console.log('RAG 방식 추천 결과:', rawRecommendations);
+        return rawRecommendations;
+      } else {
+        console.log('⚠️ 벡터 검색 서비스 사용 불가 - 기존 방식으로 fallback');
+        // 기존 방식으로 fallback (추가 질문 제외)
+        const visitorInfo = createVisitorInfo(user, userFormData, null);
+        const rawRecommendations = await llmService.getRecommendations(state.boothData, visitorInfo);
+        console.log('기존 방식 추천 결과:', rawRecommendations);
+        return rawRecommendations;
+      }
+    } catch (error) {
+      console.error('RAG 기반 추천 생성 오류:', error);
+      // 오류 발생 시 기존 방식으로 fallback (추가 질문 제외)
+      console.log('RAG 방식 실패, 기존 방식으로 fallback');
+      const visitorInfo = createVisitorInfo(user, userFormData, null);
+      const rawRecommendations = await llmService.getRecommendations(state.boothData, visitorInfo);
+      return rawRecommendations;
+    }
+  };
+
   const handleFormSubmit = async (formData: UserFormData) => {
     if (!state.currentUser) return;
 
@@ -290,6 +356,43 @@ const App: React.FC = () => {
         userFormData: formData
       }));
 
+      // 사용자가 이미 완료된 상태인지 확인 (재입장 시 추가 질문 건너뛰기)
+      const isUserCompleted = state.currentUser.skipped_at || state.currentUser.additional_form_submitted_at;
+      
+      if (isUserCompleted) {
+        // 완료된 사용자가 정보를 수정한 경우 - 바로 추천 생성
+        console.log('🔄 완료된 사용자 정보 수정 - 바로 추천 생성');
+        
+        // 로딩 페이지로 이동
+        setState(prev => ({
+          ...prev,
+          currentPage: 'loading'
+        }));
+
+        // RAG 기반 추천 생성 (추가 질문 제외)
+        const rawRecommendations = await generateRecommendationsWithRAG(
+          state.currentUser,
+          formData,
+          null
+        );
+        
+        const recommendations = dedupeRecommendations(rawRecommendations);
+        
+        // 추천 결과를 데이터베이스에 저장
+        await userService.updateUserRecommendation(
+          state.currentUser.user_id, 
+          JSON.stringify(recommendations)
+        );
+
+        setState(prev => ({
+          ...prev,
+          recommendations,
+          currentPage: 'recommendations'
+        }));
+        return;
+      }
+
+      // 새 사용자 또는 미완료 사용자 - 추가 질문 생성
       // 로딩 페이지로 이동
       setState(prev => ({
         ...prev,
@@ -340,16 +443,14 @@ const App: React.FC = () => {
         currentPage: 'loading'
       }));
 
-      // LLM API 호출 - 추가 답변까지 포함하여 추천 생성
-      const visitorInfo = createVisitorInfo(
+      // RAG 기반 추천 생성 (추가 질문은 기록용으로만 사용)
+      console.log('=== App.tsx: RAG 기반 추천 생성 시작 (추가 질문은 기록용으로만 사용) ===');
+      
+      const rawRecommendations = await generateRecommendationsWithRAG(
         state.currentUser,
         state.userFormData,
         questionAnswerPairs
       );
-      console.log('=== App.tsx: 추천 생성 시작 (추가 질문 포함) ===');
-      console.log('부스 데이터 개수:', state.boothData.length);
-      
-      const rawRecommendations = await llmService.getRecommendations(state.boothData, visitorInfo);
       console.log('LLM에서 받은 원본 추천:', rawRecommendations);
       console.log('원본 추천 길이:', rawRecommendations?.length);
       
@@ -391,22 +492,26 @@ const App: React.FC = () => {
         currentPage: 'loading'
       }));
 
-      // LLM API 호출 - 초기 폼만으로 추천 생성
-      const visitorInfo = createVisitorInfo(
+      // RAG 기반 추천 생성 (스킵 - 추가 질문은 기록용으로만 사용)
+      console.log('=== App.tsx: RAG 기반 추천 생성 시작 (스킵 - 추가 질문은 기록용으로만 사용) ===');
+      
+      const rawRecommendations = await generateRecommendationsWithRAG(
         state.currentUser,
         state.userFormData || { age: 0, gender: '', interests: {}, visitPurpose: '' },
         null
       );
-      console.log('=== App.tsx: 추천 생성 시작 (스킵) ===');
-      console.log('부스 데이터 개수:', state.boothData.length);
-      
-      const rawRecommendations = await llmService.getRecommendations(state.boothData, visitorInfo);
       console.log('LLM에서 받은 원본 추천:', rawRecommendations);
       console.log('원본 추천 길이:', rawRecommendations?.length);
       
       const recommendations = dedupeRecommendations(rawRecommendations);
       console.log('중복 제거 후 추천:', recommendations);
       console.log('중복 제거 후 추천 길이:', recommendations?.length);
+      
+      // 유사도가 포함된 추천 데이터 확인
+      if (recommendations && recommendations.length > 0) {
+        console.log('첫 번째 추천의 유사도:', recommendations[0].similarity);
+        console.log('유사도가 포함된 추천 데이터:', recommendations.slice(0, 3));
+      }
       
       // 추천 결과를 데이터베이스에 저장
       await userService.updateUserRecommendation(
@@ -430,24 +535,69 @@ const App: React.FC = () => {
   };
 
   const createVisitorInfo = (
-    _user: User, 
+    user: User, 
     formData: UserFormData, 
-    questionAnswerPairs: Array<{ question: string; answer: string }> | null
+    _questionAnswerPairs: Array<{ question: string; answer: string }> | null
   ): string => {
-    let info = `나이: ${formData.age}세\n`;
-    info += `성별: ${formData.gender}\n`;
+    // 폼 데이터를 우선적으로 사용 (신규 사용자 대응)
+    const age = formData.age || user.age;
+    const gender = formData.gender || user.gender;
+    const specificGoal = formData.specificGoal || user.specific_goal;
+    const interests = formData.interests || user.interests;
     
-    // 방문 목적 정보 추가
-    if (formData.visitPurpose) {
-      info += `방문 목적: ${formData.visitPurpose}\n`;
-      
-      // 명확한 목표인 경우 구체적인 목표 정보 추가
-      if (formData.visitPurpose === '명확한 목표' && formData.specificGoal) {
-        info += `구체적인 목표: ${formData.specificGoal}\n`;
+    let info = `나이: ${age}세\n`;
+    info += `성별: ${gender}\n`;
+    
+    // 새로운 선택 항목들 추가 (폼 데이터 우선 사용)
+    const selectionItems = [];
+    const hasChildren = formData.hasChildren !== undefined ? formData.hasChildren : user.has_children;
+    const hasPets = formData.hasPets !== undefined ? formData.hasPets : user.has_pets;
+    const hasAllergies = formData.hasAllergies !== undefined ? formData.hasAllergies : user.has_allergies;
+    
+    // 자녀 관련 정보
+    if (hasChildren) {
+      selectionItems.push('자녀가 있어요');
+      const childInterests = formData.childInterests || user.child_interests;
+      if (childInterests && childInterests.length > 0) {
+        selectionItems.push(`자녀 관심사: ${childInterests.join(', ')}`);
       }
+    } else {
+      selectionItems.push('자녀 없음');
     }
     
-    const interestEntries = formData.interests ? Object.entries(formData.interests) : [];
+    // 반려동물 관련 정보
+    if (hasPets) {
+      selectionItems.push('반려동물이 있어요');
+      const petTypes = formData.petTypes || user.pet_types;
+      if (petTypes && petTypes.length > 0) {
+        selectionItems.push(`반려동물 종류: ${petTypes.join(', ')}`);
+      }
+    } else {
+      selectionItems.push('반려동물 없음');
+    }
+    
+    // 알러지 관련 정보
+    if (hasAllergies) {
+      selectionItems.push('알러지가 있어요');
+      const allergies = formData.allergies || user.allergies;
+      if (allergies) {
+        selectionItems.push(`알러지 정보: ${allergies}`);
+      }
+    } else {
+      selectionItems.push('알러지 없음');
+    }
+    
+    if (selectionItems.length > 0) {
+      info += `선택 항목: ${selectionItems.join(', ')}\n`;
+    }
+
+    // 구체적 목표 (폼 데이터 우선 사용)
+    if (specificGoal && specificGoal.trim() !== '') {
+      info += `목표: ${specificGoal} 둘러보기\n`;
+    }
+    
+    // 관심사 (폼 데이터 우선 사용)
+    const interestEntries = interests ? Object.entries(interests) : [];
     
     if (interestEntries.length > 0) {
       info += '\n선택한 관심사:\n';
@@ -458,16 +608,16 @@ const App: React.FC = () => {
       }
     }
     
-    // 추가 질문-답변 포함
-    if (questionAnswerPairs && questionAnswerPairs.length > 0) {
-      info += `\n\n추가 질문 및 답변:\n`;
-      questionAnswerPairs.forEach((pair, index) => {
-        info += `\nQ${index + 1}. ${pair.question}\n`;
-        info += `A${index + 1}. ${pair.answer}\n`;
-      });
-    }
+    // 추가 질문-답변은 추천 생성에서 제외 (기록용으로만 사용)
+    // if (questionAnswerPairs && questionAnswerPairs.length > 0) {
+    //   info += `\n\n추가 질문 및 답변:\n`;
+    //   questionAnswerPairs.forEach((pair, index) => {
+    //     info += `\nQ${index + 1}. ${pair.question}\n`;
+    //     info += `A${index + 1}. ${pair.answer}\n`;
+    //   });
+    // }
     
-    console.log(info);
+    console.log('방문자 정보 (추가 질문 제외):', info);
     return info;
   };
 
@@ -502,20 +652,10 @@ const App: React.FC = () => {
           currentPage: 'recommendations'
         };
       } else if (prev.currentPage === 'recommendations') {
-        // 추천 페이지에서 뒤로가기를 누르면 랜딩 페이지로 이동
-        // GPS 추적 중지
-        if (window.gpsService) {
-          console.log('🛑 뒤로가기: GPS 추적 중지 중...');
-          window.gpsService.stopTracking();
-          window.gpsService = null;
-        }
-        
+        // 추천 페이지에서 뒤로가기를 누르면 폼 페이지로 이동 (정보 수정 가능)
         return {
           ...prev,
-          currentUser: null,
-          recommendations: [],
-          selectedBooth: null,
-          currentPage: 'landing'
+          currentPage: 'form'
         };
       } else if (prev.currentPage === 'followup') {
         // 추가 질문 페이지에서 뒤로가기를 누르면 폼 페이지로 이동
@@ -575,8 +715,23 @@ const App: React.FC = () => {
       console.log('⚠️ GPS 서비스가 없음');
     }
     
+    // 감사 메시지 페이지로 이동
+    console.log('🙏 감사 메시지 페이지로 이동');
+    setState(prev => ({
+      ...prev,
+      currentPage: 'thankyou'
+    }));
+  };
+
+  const handleExitRatingCancel = () => {
+    console.log('❌ 별점 수집 취소');
+    setShowExitRatingModal(false);
+  };
+
+  const handleThankYouComplete = () => {
+    console.log('🙏 감사 메시지 완료 - 앱 초기화');
+    
     // 앱 초기화
-    console.log('🔄 앱 상태 초기화 중...');
     setState({
       currentUser: null,
       userFormData: null,
@@ -587,11 +742,6 @@ const App: React.FC = () => {
       evaluation: null
     });
     console.log('✅ 앱 상태 초기화 완료');
-  };
-
-  const handleExitRatingCancel = () => {
-    console.log('❌ 별점 수집 취소');
-    setShowExitRatingModal(false);
   };
 
   const renderCurrentPage = () => {
@@ -605,6 +755,7 @@ const App: React.FC = () => {
           <UserFormPage
             onSubmit={handleFormSubmit}
             onBack={handleBack}
+            initialData={state.userFormData}
           />
         );
       
@@ -656,6 +807,9 @@ const App: React.FC = () => {
       
       case 'complete':
         return <CompletePage />;
+      
+      case 'thankyou':
+        return <ThankYouPage onComplete={handleThankYouComplete} />;
       
       case 'detail':
         if (!state.currentUser || !state.selectedBooth) return null;

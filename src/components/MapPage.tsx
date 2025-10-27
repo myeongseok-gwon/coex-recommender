@@ -6,16 +6,14 @@ interface MapPageProps {
   user: User;
   recommendations: Recommendation[];
   onBack: () => void;
+  selectedBooth?: Booth | null;
+  onBoothSelect?: () => void;
 }
 
-const DISPLAY_COUNT = 10;
-
-
-const MapPage: React.FC<MapPageProps> = ({ user, recommendations }) => {
+const MapPage: React.FC<MapPageProps> = ({ user, recommendations, selectedBooth, onBoothSelect }) => {
   const [positions, setPositions] = useState<BoothPosition[]>([]);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [displayedRecommendations, setDisplayedRecommendations] = useState<Recommendation[]>([]);
   const [selectedBoothId, setSelectedBoothId] = useState<string | null>(null);
   const [boothData, setBoothData] = useState<Map<string, Booth>>(new Map());
   const [evaluatedBooths, setEvaluatedBooths] = useState<Set<string>>(new Set());
@@ -62,6 +60,22 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations }) => {
     loadBoothData();
   }, []);
 
+  // 선택된 부스가 있을 때 자동으로 클릭
+  useEffect(() => {
+    if (selectedBooth && boothData.has(selectedBooth.id)) {
+      // 약간의 지연을 두어 지도가 완전히 로드된 후 클릭
+      const timer = setTimeout(() => {
+        setSelectedBoothId(selectedBooth.id);
+        // 부스 선택 후 콜백 호출
+        if (onBoothSelect) {
+          onBoothSelect();
+        }
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [selectedBooth, boothData, onBoothSelect]);
+
   // 평가된 부스 데이터 로드
   useEffect(() => {
     const loadEvaluatedBooths = async () => {
@@ -80,12 +94,8 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations }) => {
     }
   }, [user.user_id]);
 
-  // displayedRecommendations 계산 (RecommendationsPage와 동일한 로직)
-  useEffect(() => {
-    console.log('=== MapPage: displayedRecommendations 계산 ===');
-    console.log('받은 추천 개수:', recommendations.length);
-    
-    // 삭제된 부스 ID 목록 가져오기
+  // 삭제된 부스 ID 목록 가져오기
+  const getDeletedBoothIds = (): Set<string> => {
     const deletedBoothIds = new Set<string>();
     if (user.rec_eval) {
       try {
@@ -99,16 +109,14 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations }) => {
         console.error('rec_eval 파싱 오류:', e);
       }
     }
+    return deletedBoothIds;
+  };
 
-    // 삭제되지 않은 추천만 필터링
-    const activeRecommendations = recommendations.filter(rec => !deletedBoothIds.has(rec.id));
-    console.log('삭제되지 않은 추천 개수:', activeRecommendations.length);
-    
-    // 처음 10개만 표시
-    const displayed = activeRecommendations.slice(0, DISPLAY_COUNT);
-    setDisplayedRecommendations(displayed);
-    console.log('지도에 표시할 추천 개수:', displayed.length);
-  }, [recommendations, user.rec_eval]);
+  // 삭제되지 않은 추천만 필터링
+  const getActiveRecommendations = (): Recommendation[] => {
+    const deletedBoothIds = getDeletedBoothIds();
+    return recommendations.filter(rec => !deletedBoothIds.has(rec.id));
+  };
 
   const loadPositions = async () => {
     try {
@@ -139,6 +147,7 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations }) => {
 
   const handleMarkerClick = (e: React.MouseEvent, boothId: string) => {
     e.stopPropagation();
+    e.preventDefault(); // 기본 동작 방지 (스크롤 등)
     setSelectedBoothId(boothId === selectedBoothId ? null : boothId);
   };
 
@@ -149,8 +158,8 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations }) => {
   };
 
 
-  // 표시할 추천 부스 ID 목록 (displayedRecommendations만)
-  const displayedBoothIds = new Set(displayedRecommendations.map(r => r.id));
+  // 표시할 추천 부스 ID 목록 (모든 활성 추천)
+  const activeBoothIds = new Set(getActiveRecommendations().map(r => r.id));
 
   // 평가 완료 여부 확인 함수
   const isEvaluated = (boothId: string): boolean => {
@@ -162,7 +171,7 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations }) => {
   const displayPositions = isAdminMode
     ? positions
     : positions.filter(pos => {
-      const isRecommended = displayedBoothIds.has(pos.booth_id);
+      const isRecommended = activeBoothIds.has(pos.booth_id);
       const isEvaluatedBooth = evaluatedBooths.has(pos.booth_id);
       return isRecommended || isEvaluatedBooth;
     });
@@ -177,7 +186,7 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations }) => {
         {loading ? (
           <div className="loading">로딩 중...</div>
         ) : (
-          <div className="map-image-container" onClick={handleContainerClick}>
+          <div className={`map-image-container ${selectedBoothId ? 'has-selected' : ''}`} onClick={handleContainerClick}>
             <img
               ref={imageRef}
               src="/2025_map.png"
@@ -187,7 +196,7 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations }) => {
             />
             {displayPositions.map(pos => {
               const evaluated = isEvaluated(pos.booth_id);
-              const isRecommended = displayedBoothIds.has(pos.booth_id);
+              const isRecommended = activeBoothIds.has(pos.booth_id);
               
               // Admin 모드: 모든 부스 파란색
               // 일반 모드: 평가된 부스 = 파란색, 추천되었지만 평가되지 않은 부스 = 빨간색
@@ -208,21 +217,28 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations }) => {
               const isSelected = selectedBoothId === pos.booth_id;
               
               return (
-                <div
-                  key={pos.booth_id}
-                  className={`booth-marker ${markerClass}`}
-                  style={{
-                    left: `${pos.x * 100}%`,
-                    top: `${pos.y * 100}%`,
-                  }}
-                  onClick={(e) => handleMarkerClick(e, pos.booth_id)}
-                >
+                <React.Fragment key={pos.booth_id}>
+                  <div
+                    className={`booth-marker ${markerClass} ${isSelected ? 'selected' : ''}`}
+                    style={{
+                      left: `${pos.x * 100}%`,
+                      top: `${pos.y * 100}%`,
+                    }}
+                    onClick={(e) => handleMarkerClick(e, pos.booth_id)}
+                    tabIndex={-1}
+                  />
                   {isSelected && !isAdminMode && (
-                    <div className="booth-tooltip">
+                    <div 
+                      className="booth-tooltip"
+                      style={{
+                        left: `${pos.x * 100}%`,
+                        top: `${pos.y * 100}%`,
+                      }}
+                    >
                       {getBoothName(pos.booth_id)}
                     </div>
                   )}
-                </div>
+                </React.Fragment>
               );
             })}
           </div>
@@ -277,8 +293,18 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations }) => {
           align-items: center;
           justify-content: center;
           box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-          transition: all 0.2s;
+          transition: all 0.3s ease;
           cursor: pointer;
+          z-index: 1;
+        }
+
+        /* 부스가 선택되었을 때 다른 부스들 투명도 조정 */
+        .map-image-container.has-selected .booth-marker:not(.selected) {
+          opacity: 0.3;
+        }
+
+        .booth-marker.selected {
+          opacity: 1;
           z-index: 10;
         }
 
@@ -301,25 +327,23 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations }) => {
 
         .booth-marker:hover {
           transform: translate(-50%, -50%) scale(1.3);
-          z-index: 20;
+          z-index: 2;
         }
 
         .booth-tooltip {
-          position: absolute;
-          bottom: 100%;
-          left: 50%;
-          transform: translateX(-50%);
-          margin-bottom: 8px;
-          padding: 8px 12px;
-          background: rgba(0, 0, 0, 0.9);
-          color: white;
-          border-radius: 6px;
-          font-size: 13px;
-          font-weight: 600;
-          white-space: nowrap;
-          pointer-events: none;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-          z-index: 100;
+          position: absolute !important;
+          transform: translate(-50%, -100%) !important;
+          margin-bottom: 8px !important;
+          padding: 8px 12px !important;
+          background: rgba(0, 0, 0, 0.9) !important;
+          color: white !important;
+          border-radius: 6px !important;
+          font-size: 13px !important;
+          font-weight: 600 !important;
+          white-space: nowrap !important;
+          pointer-events: none !important;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+          z-index: 9999 !important;
         }
 
         .booth-tooltip::after {

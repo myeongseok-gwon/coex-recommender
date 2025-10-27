@@ -4,6 +4,7 @@ import { UserFormData } from '../types';
 interface UserFormPageProps {
   onSubmit: (formData: UserFormData) => void;
   onBack: () => void;
+  initialData?: UserFormData | null;
 }
 
 // 관심사 데이터 구조
@@ -54,22 +55,29 @@ const INTEREST_CATEGORIES = {
   "식이 스타일": {
     icon: "😋",
     subcategories: {
-      "맛 강도": ["매운맛 🌶️", "짠맛 🧂", "단맛 🍯", "신맛 🍋", "담백한맛 🥬", "감칠맛 🍄"],
+      "맛 취향": ["매운맛 🌶️", "짠맛 🧂", "단맛 🍯", "신맛 🍋", "담백한맛 🥬", "감칠맛 🍄"],
       "조리법": ["구이/로스팅 🔥", "찜/삶기 ♨️", "튀김 🍤", "조림 🍲"],
       "식습관": ["채식/비건", "저탄수", "저염식", "저당식", "고단백"],
     }
   },
 };
 
-const UserFormPage: React.FC<UserFormPageProps> = ({ onSubmit, onBack }) => {
-  const [formData, setFormData] = useState<UserFormData>({
+const UserFormPage: React.FC<UserFormPageProps> = ({ onSubmit, onBack, initialData }) => {
+  const [formData, setFormData] = useState<UserFormData>(initialData || {
     age: 0,
     gender: '',
     visitPurpose: '',
     interests: {},
     hasCompanion: false,
     companionCount: 0,
-    specificGoal: ''
+    specificGoal: '',
+    // 새로운 선택 항목들
+    hasChildren: false,
+    childInterests: [],
+    hasPets: false,
+    petTypes: [],
+    hasAllergies: false,
+    allergies: ''
   });
 
   // 이모지 제거 함수
@@ -164,6 +172,46 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ onSubmit, onBack }) => {
     });
   };
 
+  // 새로운 선택 항목 핸들러들
+  const handleSelectionToggle = (field: 'hasChildren' | 'hasPets' | 'hasAllergies', value: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value,
+      // 선택 해제 시 관련 필드들도 초기화
+      ...(field === 'hasChildren' && !value && { childInterests: [] }),
+      ...(field === 'hasPets' && !value && { petTypes: [] }),
+      ...(field === 'hasAllergies' && !value && { allergies: '' })
+    }));
+  };
+
+  const handleChildInterestToggle = (interest: string) => {
+    setFormData(prev => {
+      const currentInterests = prev.childInterests || [];
+      const newInterests = currentInterests.includes(interest)
+        ? currentInterests.filter(i => i !== interest)
+        : [...currentInterests, interest];
+      
+      return {
+        ...prev,
+        childInterests: newInterests
+      };
+    });
+  };
+
+  const handlePetTypeToggle = (petType: string) => {
+    setFormData(prev => {
+      const currentTypes = prev.petTypes || [];
+      const newTypes = currentTypes.includes(petType)
+        ? currentTypes.filter(t => t !== petType)
+        : [...currentTypes, petType];
+      
+      return {
+        ...prev,
+        petTypes: newTypes
+      };
+    });
+  };
+
   const isItemSelected = (subcategory: string, item: string): boolean => {
     return formData.interests?.[subcategory]?.includes(item) || false;
   };
@@ -213,6 +261,138 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ onSubmit, onBack }) => {
             <option value="여성">여성</option>
           </select>
         </div>
+
+        {/* 새로운 선택 항목들 */}
+        <div className="form-group">
+          <label className="form-label">
+            선택 항목 (다중 선택 가능)
+          </label>
+          <div className="checkbox-group">
+            <label className="checkbox-item">
+              <input
+                type="checkbox"
+                checked={formData.hasChildren || false}
+                onChange={(e) => handleSelectionToggle('hasChildren', e.target.checked)}
+              />
+              <span className="checkbox-label">자녀가 있어요</span>
+            </label>
+            <label className="checkbox-item">
+              <input
+                type="checkbox"
+                checked={formData.hasPets || false}
+                onChange={(e) => handleSelectionToggle('hasPets', e.target.checked)}
+              />
+              <span className="checkbox-label">반려동물이 있어요</span>
+            </label>
+            <label className="checkbox-item">
+              <input
+                type="checkbox"
+                checked={formData.hasAllergies || false}
+                onChange={(e) => handleSelectionToggle('hasAllergies', e.target.checked)}
+              />
+              <span className="checkbox-label">알러지가 있어요</span>
+            </label>
+            <label className="checkbox-item">
+              <input
+                type="checkbox"
+                checked={!formData.hasChildren && !formData.hasPets && !formData.hasAllergies}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setFormData(prev => ({
+                      ...prev,
+                      hasChildren: false,
+                      childInterests: [],
+                      hasPets: false,
+                      petTypes: [],
+                      hasAllergies: false,
+                      allergies: ''
+                    }));
+                  }
+                }}
+              />
+              <span className="checkbox-label">해당 사항 없어요</span>
+            </label>
+          </div>
+        </div>
+
+        {/* 자녀 관련 관심사 */}
+        {formData.hasChildren && (
+          <div className="form-group">
+            <label className="form-label">
+              자녀 관련 관심사 (선택사항)
+            </label>
+            <div className="checkbox-group">
+              <label className="checkbox-item">
+                <input
+                  type="checkbox"
+                  checked={formData.childInterests?.includes('분유') || false}
+                  onChange={() => handleChildInterestToggle('분유')}
+                />
+                <span className="checkbox-label">분유</span>
+              </label>
+              <label className="checkbox-item">
+                <input
+                  type="checkbox"
+                  checked={formData.childInterests?.includes('이유식') || false}
+                  onChange={() => handleChildInterestToggle('이유식')}
+                />
+                <span className="checkbox-label">이유식</span>
+              </label>
+            </div>
+          </div>
+        )}
+
+        {/* 반려동물 종류 */}
+        {formData.hasPets && (
+          <div className="form-group">
+            <label className="form-label">
+              반려동물 종류 (다중 선택 가능)
+            </label>
+            <div className="checkbox-group">
+              <label className="checkbox-item">
+                <input
+                  type="checkbox"
+                  checked={formData.petTypes?.includes('강아지') || false}
+                  onChange={() => handlePetTypeToggle('강아지')}
+                />
+                <span className="checkbox-label">강아지</span>
+              </label>
+              <label className="checkbox-item">
+                <input
+                  type="checkbox"
+                  checked={formData.petTypes?.includes('고양이') || false}
+                  onChange={() => handlePetTypeToggle('고양이')}
+                />
+                <span className="checkbox-label">고양이</span>
+              </label>
+              <label className="checkbox-item">
+                <input
+                  type="checkbox"
+                  checked={formData.petTypes?.includes('그 외') || false}
+                  onChange={() => handlePetTypeToggle('그 외')}
+                />
+                <span className="checkbox-label">그 외</span>
+              </label>
+            </div>
+          </div>
+        )}
+
+        {/* 알러지 정보 */}
+        {formData.hasAllergies && (
+          <div className="form-group">
+            <label htmlFor="allergies" className="form-label">
+              알러지 정보
+            </label>
+            <input
+              type="text"
+              id="allergies"
+              className="form-input"
+              value={formData.allergies || ''}
+              onChange={(e) => handleInputChange('allergies', e.target.value)}
+              placeholder="알러지 정보를 입력하세요 (예: 견과류, 유제품 등)"
+            />
+          </div>
+        )}
 
         <div className="form-group">
           <label className="form-label">
@@ -548,6 +728,45 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ onSubmit, onBack }) => {
           opacity: 0;
           width: 0;
           height: 0;
+        }
+
+        /* 새로운 선택 항목 스타일 */
+        .checkbox-group {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .checkbox-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px;
+          border: 2px solid #e0e0e0;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s;
+          background: #fff;
+        }
+
+        .checkbox-item:hover {
+          border-color: #1976d2;
+          background: #f8f9fa;
+        }
+
+        .checkbox-item input[type="checkbox"]:checked + .checkbox-label {
+          color: #1976d2;
+          font-weight: 600;
+        }
+
+        .checkbox-item input[type="checkbox"]:checked {
+          accent-color: #1976d2;
+        }
+
+        .checkbox-label {
+          font-size: 14px;
+          color: #333;
+          cursor: pointer;
         }
 
         .purpose-content {

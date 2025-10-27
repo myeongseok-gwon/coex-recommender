@@ -9,6 +9,13 @@ export interface User {
   specific_goal?: string;
   followup_questions?: string;
   followup_answers?: string;
+  // 새로운 선택 항목들
+  has_children?: boolean;
+  child_interests?: string[]; // 분유, 이유식 등
+  has_pets?: boolean;
+  pet_types?: string[]; // 강아지, 고양이, 그 외
+  has_allergies?: boolean;
+  allergies?: string; // 자유 입력
   initial_form_started_at?: string;
   initial_form_submitted_at?: string;
   skipped_at?: string;
@@ -25,6 +32,9 @@ export interface User {
   final_cons?: string;
   path_image_url?: string;
   path_drawing_url?: string;
+  exit_recommendation_rating?: number;
+  exit_exhibition_rating?: number;
+  exit_ratings_submitted_at?: string;
 }
 
 export interface Evaluation {
@@ -54,6 +64,8 @@ export interface Booth {
 export interface Recommendation {
   id: string; // A1234, B5678 등의 문자열 형식
   rationale: string;
+  similarity?: number; // 벡터 유사도 점수 (0-1)
+  sector?: string; // 이 추천이 어떤 섹터에서 왔는지 (신선식품, 가공식품 등)
 }
 
 export interface UserFormData {
@@ -64,6 +76,13 @@ export interface UserFormData {
   hasCompanion?: boolean;
   companionCount?: number;
   specificGoal?: string;
+  // 새로운 선택 항목들
+  hasChildren?: boolean;
+  childInterests?: string[]; // 분유, 이유식 등
+  hasPets?: boolean;
+  petTypes?: string[]; // 강아지, 고양이, 그 외
+  hasAllergies?: boolean;
+  allergies?: string; // 자유 입력
 }
 
 export interface BoothPosition {
@@ -97,7 +116,7 @@ export interface GpsTracking {
 
 export interface AppState {
   currentUser: User | null;
-  currentPage: 'landing' | 'form' | 'followup' | 'loading' | 'recommendations' | 'detail' | 'map' | 'survey' | 'complete';
+  currentPage: 'landing' | 'form' | 'followup' | 'loading' | 'recommendations' | 'detail' | 'map' | 'survey' | 'complete' | 'thankyou';
   recommendations: Recommendation[];
   selectedBooth: Booth | null;
   boothData: Booth[];

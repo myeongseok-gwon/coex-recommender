@@ -11,6 +11,31 @@ const LandingPage: React.FC<LandingPageProps> = ({ onUserValid }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [gpsService, setGpsService] = useState<GPSService | null>(null);
+  const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | 'unknown'>('unknown');
+
+  // 위치 정보 권한 확인 함수
+  const checkLocationPermission = async () => {
+    if (!navigator.permissions) {
+      console.log('❌ navigator.permissions 지원되지 않음');
+      setLocationPermission('unknown');
+      return;
+    }
+
+    try {
+      const permission = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+      console.log('📍 위치 정보 권한 상태:', permission.state);
+      setLocationPermission(permission.state);
+      
+      // 권한 상태 변경 감지
+      permission.onchange = () => {
+        console.log('📍 위치 정보 권한 상태 변경:', permission.state);
+        setLocationPermission(permission.state);
+      };
+    } catch (error) {
+      console.log('❌ 위치 정보 권한 확인 실패:', error);
+      setLocationPermission('unknown');
+    }
+  };
 
   useEffect(() => {
     console.log('🎯 LandingPage 컴포넌트 마운트됨');
@@ -18,6 +43,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onUserValid }) => {
     const service = new GPSService('');
     setGpsService(service);
     console.log('📍 GPS 서비스 초기화 완료');
+    
+    // 위치 정보 권한 확인
+    checkLocationPermission();
     
     // 컴포넌트 언마운트 시 GPS 추적 정리
     return () => {
@@ -146,9 +174,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onUserValid }) => {
       <div className="header">
         <h1>COEX 추천 시스템</h1>
         <p>전화번호를 입력해주세요. (로그인 및 추첨 목적)</p>
-        <div className="location-notice">
-          <p>📍 위치 정보 수집 동의는 서비스 개선에 큰 도움이 됩니다</p>
-        </div>
+        {locationPermission !== 'granted' && (
+          <div className="location-notice">
+            <p>📍 브라우저 설정에서 위치 정보 수집을 동의해주세요.</p>
+          </div>
+        )}
       </div>
 
     

@@ -123,6 +123,14 @@ export const userService = {
     if (formData.companionCount !== undefined) updateData.companion_count = formData.companionCount;
     if (formData.specificGoal !== undefined) updateData.specific_goal = formData.specificGoal;
     
+    // 새로운 선택 항목 필드들
+    if (formData.hasChildren !== undefined) updateData.has_children = formData.hasChildren;
+    if (formData.childInterests !== undefined) updateData.child_interests = formData.childInterests;
+    if (formData.hasPets !== undefined) updateData.has_pets = formData.hasPets;
+    if (formData.petTypes !== undefined) updateData.pet_types = formData.petTypes;
+    if (formData.hasAllergies !== undefined) updateData.has_allergies = formData.hasAllergies;
+    if (formData.allergies !== undefined) updateData.allergies = formData.allergies;
+    
     const { error } = await supabase
       .from('user')
       .update(updateData)

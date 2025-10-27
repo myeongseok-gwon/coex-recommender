@@ -27,9 +27,46 @@ const MainPage: React.FC<MainPageProps> = ({
   const [selectedBoothForRating, setSelectedBoothForRating] = useState<Booth | null>(null);
   const [evaluatedBooths, setEvaluatedBooths] = useState<{booth: Booth, rating: number}[]>([]);
   const [loadingEvaluations, setLoadingEvaluations] = useState(true);
+  const [expandedRationales, setExpandedRationales] = useState<Set<string>>(new Set());
+  const [selectedBoothForMap, setSelectedBoothForMap] = useState<Booth | null>(null);
   
   // 사용자가 완료된 상태인지 확인 (퇴장 후 재입장 시 평가 추가 방지)
-  const isUserCompleted = user.skipped_at || user.additional_form_submitted_at;
+  const isUserCompleted = user.exit_ratings_submitted_at;
+
+  // 추천 사유 토글 함수
+  const toggleRationale = (boothId: string) => {
+    setExpandedRationales(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(boothId)) {
+        newSet.delete(boothId);
+      } else {
+        newSet.add(boothId);
+      }
+      return newSet;
+    });
+  };
+
+  // 지도에서 부스 보기 함수
+  const handleViewOnMap = (booth: Booth) => {
+    setSelectedBoothForMap(booth);
+    setActiveTab('map');
+    handleUserInteraction();
+  };
+
+  // 부스 정보 정리 함수들
+  const cleanCategory = (category: string | null): string => {
+    if (!category) return '';
+    // 소괄호 안의 내용 제거
+    return category.replace(/\([^)]*\)/g, '').trim();
+  };
+
+  const cleanProducts = (products: string | null): string => {
+    if (!products) return '';
+    // 쉼표나 슬래시로 분리하여 첫 번째 항목만 가져오기
+    const firstProduct = products.split(/[,/]/)[0].trim();
+    // 첫 번째 항목이 있으면 "등" 추가
+    return firstProduct ? `${firstProduct} 등` : '';
+  };
 
   // 사용자 상호작용 시 GPS 전송
   const handleUserInteraction = async () => {
@@ -148,17 +185,62 @@ const MainPage: React.FC<MainPageProps> = ({
                   const booth = boothData.find(b => b.id === rec.id);
                   if (!booth) return null;
 
+                  const isExpanded = expandedRationales.has(rec.id);
+
                   return (
                     <div key={rec.id} className="recommendation-item">
                       <div className="booth-info">
-                        <h3>{booth.company_name_kor}</h3>
-                        <p className="booth-category">{booth.category}</p>
-                        {booth.products && (
-                          <p className="booth-products">{booth.products}</p>
+                        <div className="booth-title-row">
+                          <h3>{booth.company_name_kor}</h3>
+                          <div className="similarity-badge">
+                            일치도: {rec.similarity !== undefined ? (rec.similarity * 100).toFixed(1) : 'N/A'}%
+                          </div>
+                        </div>
+                        
+                        {/* 연결된 입력 항목들 (섹터별) */}
+                        <div className="connected-inputs">
+                          <div className="connected-inputs-label">
+                            {rec.sector ? `${rec.sector}` : ''}
+                          </div>
+                        </div>
+                        
+                        {cleanProducts(booth.products) && (
+                          <p className="booth-products">
+                            <strong>{cleanProducts(booth.products)}</strong>
+                            {cleanCategory(booth.category) && (
+                              <span className="booth-category"> ({cleanCategory(booth.category)})</span>
+                            )}
+                          </p>
+                        )}
+                        
+                        {/* 지도에서 보기 버튼 */}
+
+                      </div>
+                      <div className="rationale-section">
+                        <button 
+                          className="rationale-toggle"
+                          onClick={() => toggleRationale(rec.id)}
+                        >
+                          <span className="toggle-text">
+                            추천 사유 {isExpanded ? '접기' : '펼치기'}
+                          </span>
+                          <span className="toggle-icon">
+                            {isExpanded ? '▼' : '▶'}
+                          </span>
+                        </button>
+                        {isExpanded && (
+                          <div className="rationale">
+                            <p>{rec.rationale}</p>
+                          </div>
                         )}
                       </div>
-                      <div className="rationale">
-                        <p>{rec.rationale}</p>
+                      <div className="booth-actions">
+                        <button 
+                          className="btn btn-secondary btn-small"
+                          onClick={() => handleViewOnMap(booth)}
+                        >
+                          🗺️ 지도에서 보기
+                        </button>
                       </div>
                     </div>
                   );
@@ -242,6 +324,8 @@ const MainPage: React.FC<MainPageProps> = ({
             user={user}
             recommendations={recommendations}
             onBack={onBack}
+            selectedBooth={selectedBoothForMap}
+            onBoothSelect={() => setSelectedBoothForMap(null)}
           />
         );
 
@@ -418,28 +502,39 @@ const MainPage: React.FC<MainPageProps> = ({
           background: white;
           border: 1px solid #e0e0e0;
           border-radius: 12px;
-          padding: 24px;
+          padding: 16px;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
           cursor: default;
         }
 
         .booth-info h3 {
           color: #1976d2;
-          font-size: 1.3rem;
+          font-size: 1.4rem;
           margin-bottom: 8px;
-          font-weight: 600;
-        }
-
-        .booth-category {
-          color: #666;
-          font-size: 0.9rem;
-          margin-bottom: 8px;
+          font-weight: 700;
+          line-height: 1.3;
         }
 
         .booth-products {
           color: #333;
-          font-size: 0.9rem;
-          margin-bottom: 16px;
+          font-size: 1rem;
+          margin-bottom: 6px;
+          font-weight: 500;
+          background: #fff3e0;
+          padding: 8px 12px;
+          border-radius: 6px;
+          border-left: 3px solid #ff9800;
+        }
+
+        .booth-products strong {
+          color: #000;
+          font-weight: 700;
+        }
+
+        .booth-category {
+          color: #666;
+          font-weight: 400;
+          font-style: italic;
         }
 
         .rationale {
@@ -653,6 +748,98 @@ const MainPage: React.FC<MainPageProps> = ({
           margin: 0;
           line-height: 1.5;
         }
+
+        .recommendation-item {
+          position: relative;
+        }
+
+        .rationale-section {
+          margin-top: 6px;
+        }
+
+        .rationale-toggle {
+          width: 100%;
+          background: #f8f9fa;
+          border: 1px solid #e0e0e0;
+          border-radius: 8px;
+          padding: 12px 16px;
+          cursor: pointer;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          transition: all 0.2s;
+          font-size: 14px;
+          font-weight: 500;
+          color: #1976d2;
+        }
+
+        .rationale-toggle:hover {
+          background: #e3f2fd;
+          border-color: #1976d2;
+        }
+
+        .toggle-text {
+          font-weight: 600;
+        }
+
+        .toggle-icon {
+          font-size: 12px;
+          transition: transform 0.2s;
+        }
+
+        .booth-title-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+        }
+
+        .similarity-badge {
+          background: linear-gradient(135deg, #4caf50, #66bb6a);
+          color: white;
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 600;
+          white-space: nowrap;
+        }
+
+        .connected-inputs {
+          margin: 4px 0;
+        }
+
+        .connected-inputs-label {
+          font-size: 12px;
+          color: #666;
+          margin-bottom: 2px;
+          font-weight: 500;
+        }
+
+        .booth-actions {
+          margin-top: 6px;
+          display: flex;
+          gap: 8px;
+        }
+
+        .btn-small {
+          padding: 6px 16px;
+          font-size: 0.9rem;
+          font-weight: 500;
+          margin: 0;
+        }
+
+        .btn-secondary {
+          background: #f5f5f5;
+          color: #666;
+          border: 1px solid #ddd;
+        }
+
+        .btn-secondary:hover {
+          background: #e0e0e0;
+          color: #333;
+        }
+
+
       `}</style>
     </div>
   );
