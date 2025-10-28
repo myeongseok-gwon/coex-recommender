@@ -6,14 +6,12 @@ interface BoothSearchProps {
   boothData: Booth[];
   onBoothSelect: (booth: Booth) => void;
   onClose: () => void;
-  onViewOnMap?: (booth: Booth) => void;
 }
 
 const BoothSearch: React.FC<BoothSearchProps> = ({
   boothData,
   onBoothSelect,
-  onClose,
-  onViewOnMap
+  onClose
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Booth[]>([]);

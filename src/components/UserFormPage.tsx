@@ -200,45 +200,7 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ onSubmit, onBack, initialDa
     });
   };
 
-  // 새로운 선택 항목 핸들러들
-  const handleSelectionToggle = (field: 'hasChildren' | 'hasPets' | 'hasAllergies', value: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value,
-      // 선택 해제 시 관련 필드들도 초기화
-      ...(field === 'hasChildren' && !value && { childInterests: [] }),
-      ...(field === 'hasPets' && !value && { petTypes: [] }),
-      ...(field === 'hasAllergies' && !value && { allergies: '' })
-    }));
-  };
-
-  const handleChildInterestToggle = (interest: string) => {
-    setFormData(prev => {
-      const currentInterests = prev.childInterests || [];
-      const newInterests = currentInterests.includes(interest)
-        ? currentInterests.filter(i => i !== interest)
-        : [...currentInterests, interest];
-      
-      return {
-        ...prev,
-        childInterests: newInterests
-      };
-    });
-  };
-
-  const handlePetTypeToggle = (petType: string) => {
-    setFormData(prev => {
-      const currentTypes = prev.petTypes || [];
-      const newTypes = currentTypes.includes(petType)
-        ? currentTypes.filter(t => t !== petType)
-        : [...currentTypes, petType];
-      
-      return {
-        ...prev,
-        petTypes: newTypes
-      };
-    });
-  };
+  // 제거: 사용되지 않는 핸들러들 정리
 
   const isItemSelected = (subcategory: string, item: string): boolean => {
     return formData.interests?.[subcategory]?.includes(item) || false;

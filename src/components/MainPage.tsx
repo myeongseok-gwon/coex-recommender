@@ -369,10 +369,6 @@ const MainPage: React.FC<MainPageProps> = ({
           boothData={boothData}
           onBoothSelect={handleBoothSelect}
           onClose={() => setShowBoothSearch(false)}
-          onViewOnMap={(booth) => {
-            setShowBoothSearch(false);
-            handleViewOnMap(booth);
-          }}
         />
       )}
 
