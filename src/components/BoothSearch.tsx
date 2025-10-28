@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { Booth } from '../types';
+import { hasLongCompanyName } from '../utils/companyName';
 
 interface BoothSearchProps {
   boothData: Booth[];
   onBoothSelect: (booth: Booth) => void;
   onClose: () => void;
+  onViewOnMap?: (booth: Booth) => void;
 }
 
 const BoothSearch: React.FC<BoothSearchProps> = ({
   boothData,
   onBoothSelect,
-  onClose
+  onClose,
+  onViewOnMap
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Booth[]>([]);
@@ -82,18 +85,15 @@ const BoothSearch: React.FC<BoothSearchProps> = ({
           {hasSearched && (
             <>
               {searchResults.length > 0 ? (
-                <div className="results-list">
+                <div className="results-grid">
                   {searchResults.map((booth, index) => (
                     <div
                       key={`${booth.id}-${index}`}
-                      className="result-item"
+                      className="result-card"
                       onClick={() => handleBoothClick(booth)}
                     >
-                      <div className="booth-info">
-                        <h3>{booth.company_name_kor}</h3>
-                        <p className="booth-category">{booth.category}</p>
-                        <p className="booth-products">{booth.products}</p>
-                      </div>
+                      <div className={`card-company-name ${hasLongCompanyName(booth.company_name_kor) ? 'long-name' : ''}`}>{booth.company_name_kor}</div>
+                      <div className="card-products">{booth.products || '정보 없음'}</div>
                     </div>
                   ))}
                 </div>
@@ -213,41 +213,45 @@ const BoothSearch: React.FC<BoothSearchProps> = ({
           padding: 0 24px 24px;
         }
 
-        .results-list {
-          display: flex;
-          flex-direction: column;
+        .results-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
           gap: 12px;
+          padding: 0;
         }
 
-        .result-item {
-          padding: 16px;
+        .result-card {
+          background: white;
           border: 1px solid #e0e0e0;
           border-radius: 8px;
+          padding: 16px;
           cursor: pointer;
-          transition: all 0.2s;
+          transition: all 0.2s ease;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+          margin-top: 16px;
         }
 
-        .result-item:hover {
+        .result-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
           border-color: #1976d2;
-          background: #f8f9fa;
         }
 
-        .booth-info h3 {
-          margin: 0 0 8px 0;
+        .card-company-name {
+          font-size: 0.95rem;
+          font-weight: 600;
           color: #1976d2;
-          font-size: 1.1rem;
+          margin-bottom: 6px;
         }
 
-        .booth-category {
-          margin: 0 0 4px 0;
+        .card-company-name.long-name {
+          font-size: 0.8rem;
+        }
+
+        .card-products {
+          font-size: 0.85rem;
           color: #666;
-          font-size: 0.9rem;
-        }
-
-        .booth-products {
-          margin: 0;
-          color: #333;
-          font-size: 0.9rem;
+          line-height: 1.4;
         }
 
         .no-results {

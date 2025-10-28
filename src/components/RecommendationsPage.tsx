@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, Recommendation, Booth } from '../types';
 import { evaluationService, userService } from '../services/supabase';
+import { hasLongCompanyName } from '../utils/companyName';
 
 interface RecommendationsPageProps {
   user: User;
@@ -336,7 +337,7 @@ const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
               <div onClick={() => onBoothClick(booth)}>
                 <div className="booth-item-header">
                   <div className="booth-title-row">
-                    <h3>{booth.company_name_kor}</h3>
+                    <h3 className={hasLongCompanyName(booth.company_name_kor) ? 'long-name' : ''}>{booth.company_name_kor}</h3>
                     <div className="similarity-badge">
                       일치도: {rec.similarity !== undefined ? (rec.similarity * 100).toFixed(1) : 'N/A'}%
                     </div>
@@ -594,6 +595,10 @@ const RecommendationsPage: React.FC<RecommendationsPageProps> = ({
           flex: 1;
           margin: 0;
           padding-right: 32px;
+        }
+
+        .booth-item-header h3.long-name {
+          font-size: 1.0rem;
         }
 
         .evaluation-badge {

@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { Booth } from '../types';
+import { hasLongCompanyName } from '../utils/companyName';
 
 interface BoothRatingProps {
   booth: Booth;
   onRate: (rating: number) => void;
   onClose: () => void;
+  onViewOnMap?: (booth: Booth) => void;
 }
 
 const BoothRating: React.FC<BoothRatingProps> = ({
   booth,
   onRate,
-  onClose
+  onClose,
+  onViewOnMap
 }) => {
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
@@ -52,9 +55,17 @@ const BoothRating: React.FC<BoothRatingProps> = ({
         </div>
 
         <div className="booth-info">
-          <h3>{booth.company_name_kor}</h3>
+          <h3 className={hasLongCompanyName(booth.company_name_kor) ? 'long-name' : ''}>{booth.company_name_kor}</h3>
           <p className="booth-category">{booth.category}</p>
           <p className="booth-products">{booth.products}</p>
+          {onViewOnMap && (
+            <p 
+              className="view-on-map-link"
+              onClick={() => onViewOnMap(booth)}
+            >
+              지도에서 보기
+            </p>
+          )}
         </div>
 
         <div className="rating-section">
@@ -154,6 +165,10 @@ const BoothRating: React.FC<BoothRatingProps> = ({
           font-size: 1.3rem;
         }
 
+        .booth-info h3.long-name {
+          font-size: 1.0rem;
+        }
+
         .booth-category {
           margin: 0 0 8px 0;
           color: #666;
@@ -161,9 +176,23 @@ const BoothRating: React.FC<BoothRatingProps> = ({
         }
 
         .booth-products {
-          margin: 0;
+          margin: 0 0 8px 0;
           color: #333;
           font-size: 0.9rem;
+        }
+
+        .view-on-map-link {
+          color: #1976d2;
+          font-size: 0.85rem;
+          cursor: pointer;
+          margin: 4px 0 0 0;
+          user-select: none;
+          transition: color 0.2s;
+        }
+
+        .view-on-map-link:hover {
+          color: #1565c0;
+          text-decoration: underline;
         }
 
         .rating-section {

@@ -3,7 +3,8 @@ import { User, Recommendation, Booth } from '../types';
 import BoothSearch from './BoothSearch';
 import BoothRating from './BoothRating';
 import MapPage from './MapPage';
-import { evaluationService } from '../services/supabase';
+import { evaluationService, userService } from '../services/supabase';
+import { hasLongCompanyName } from '../utils/companyName';
 
 interface MainPageProps {
   user: User;
@@ -169,6 +170,20 @@ const MainPage: React.FC<MainPageProps> = ({
     }
   };
 
+  // 추천 부스 모달 열기 핸들러
+  const handleRecommendationCardClick = async (booth: Booth, recommendation: Recommendation) => {
+    try {
+      // 추천 모달 클릭 횟수 증가 (부스별로 추적)
+      await userService.incrementRecommendationModalClicks(user.user_id, booth.id);
+      // 모달 열기
+      setSelectedBoothForModal({ booth, recommendation });
+    } catch (error) {
+      console.error('❌ 추천 모달 클릭 횟수 증가 실패:', error);
+      // 실패해도 모달은 열기
+      setSelectedBoothForModal({ booth, recommendation });
+    }
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'recommendations':
@@ -200,9 +215,9 @@ const MainPage: React.FC<MainPageProps> = ({
                     <div 
                       key={rec.id} 
                       className="recommendation-card"
-                      onClick={() => setSelectedBoothForModal({ booth, recommendation: rec })}
+                      onClick={() => handleRecommendationCardClick(booth, rec)}
                     >
-                      <div className="card-company-name">{booth.company_name_kor}</div>
+                      <div className={`card-company-name ${hasLongCompanyName(booth.company_name_kor) ? 'long-name' : ''}`}>{booth.company_name_kor}</div>
                       {cleanProducts(booth.products) && (
                         <div className="card-products">{cleanProducts(booth.products)}</div>
                       )}
@@ -259,7 +274,7 @@ const MainPage: React.FC<MainPageProps> = ({
                       {evaluatedBooths.map(({booth, rating}) => (
                         <div key={booth.id} className="evaluated-booth-item">
                           <div className="booth-header">
-                            <h4>{booth.company_name_kor}</h4>
+                            <h4 className={hasLongCompanyName(booth.company_name_kor) ? 'long-name' : ''}>{booth.company_name_kor}</h4>
                             <div className="rating-display">
                               <span className="rating-stars">
                                 {'⭐'.repeat(rating)}
@@ -354,6 +369,10 @@ const MainPage: React.FC<MainPageProps> = ({
           boothData={boothData}
           onBoothSelect={handleBoothSelect}
           onClose={() => setShowBoothSearch(false)}
+          onViewOnMap={(booth) => {
+            setShowBoothSearch(false);
+            handleViewOnMap(booth);
+          }}
         />
       )}
 
@@ -362,6 +381,10 @@ const MainPage: React.FC<MainPageProps> = ({
           booth={selectedBoothForRating}
           onRate={handleBoothRate}
           onClose={() => setSelectedBoothForRating(null)}
+          onViewOnMap={(booth) => {
+            setSelectedBoothForRating(null);
+            handleViewOnMap(booth);
+          }}
         />
       )}
 
@@ -834,6 +857,18 @@ const MainPage: React.FC<MainPageProps> = ({
           margin-bottom: 6px;
         }
 
+        .card-company-name.long-name {
+          font-size: 0.8rem;
+        }
+
+        .booth-header h4.long-name {
+          font-size: 0.9rem;
+        }
+
+        .modal-title.long-name {
+          font-size: 1.1rem;
+        }
+
         .card-products {
           font-size: 0.85rem;
           color: #666;
@@ -929,7 +964,7 @@ const MainPage: React.FC<MainPageProps> = ({
         <div className="modal-overlay" onClick={() => setSelectedBoothForModal(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2 className="modal-title">{selectedBoothForModal.booth.company_name_kor}</h2>
+              <h2 className={`modal-title ${hasLongCompanyName(selectedBoothForModal.booth.company_name_kor) ? 'long-name' : ''}`}>{selectedBoothForModal.booth.company_name_kor}</h2>
               <button className="modal-close" onClick={() => setSelectedBoothForModal(null)}>×</button>
             </div>
             <div className="modal-rationale">

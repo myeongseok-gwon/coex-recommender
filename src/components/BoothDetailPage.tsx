@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Booth, Evaluation } from '../types';
 import { evaluationService, userService } from '../services/supabase';
+import { hasLongCompanyName } from '../utils/companyName';
 
 interface BoothDetailPageProps {
   user: User;
@@ -231,7 +232,7 @@ const BoothDetailPage: React.FC<BoothDetailPageProps> = ({ user, booth, rational
       </div>
 
       <div className="card">
-        <h2 className="card-title">{booth.company_name_kor}</h2>
+        <h2 className={`card-title ${hasLongCompanyName(booth.company_name_kor) ? 'long-name' : ''}`}>{booth.company_name_kor}</h2>
         
         {booth.category && (
           <p style={{ color: '#666', fontSize: '14px', marginBottom: '12px' }}>

@@ -35,6 +35,7 @@ export interface User {
   exit_recommendation_rating?: number;
   exit_exhibition_rating?: number;
   exit_ratings_submitted_at?: string;
+  recommendation_modal_clicks?: Record<string, number>; // booth_id -> click count
 }
 
 export interface Evaluation {

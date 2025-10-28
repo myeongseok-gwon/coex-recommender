@@ -17,6 +17,7 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations, selectedBooth,
   const [selectedBoothId, setSelectedBoothId] = useState<string | null>(null);
   const [boothData, setBoothData] = useState<Map<string, Booth>>(new Map());
   const [evaluatedBooths, setEvaluatedBooths] = useState<Set<string>>(new Set());
+  const [boothIdsInCSV, setBoothIdsInCSV] = useState<Set<string>>(new Set());
   
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -26,6 +27,36 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations, selectedBooth,
     // user_id가 0이거나 문자열로 'admin'인 경우 (LandingPage에서 처리)
     setIsAdminMode(user.user_id === '0');
   }, [user]);
+
+  // CSV 파일에서 부스 ID 목록 로드
+  useEffect(() => {
+    const loadBoothIdsFromCSV = async () => {
+      try {
+        const response = await fetch('/booth_positions_rows.csv');
+        const text = await response.text();
+        const lines = text.trim().split('\n');
+        const boothIds = new Set<string>();
+        
+        // 첫 번째 줄은 헤더이므로 제외
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i];
+          if (line) {
+            const parts = line.split(',');
+            if (parts.length >= 2) {
+              boothIds.add(parts[0]); // booth_id
+            }
+          }
+        }
+        
+        setBoothIdsInCSV(boothIds);
+        console.log(`CSV에서 부스 ID 로드 완료: ${boothIds.size}개`);
+      } catch (error) {
+        console.error('CSV 파일 로드 오류:', error);
+      }
+    };
+    
+    loadBoothIdsFromCSV();
+  }, []);
 
   // 부스 위치 데이터 로드
   useEffect(() => {
@@ -63,18 +94,30 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations, selectedBooth,
   // 선택된 부스가 있을 때 자동으로 클릭
   useEffect(() => {
     if (selectedBooth && boothData.has(selectedBooth.id)) {
-      // 약간의 지연을 두어 지도가 완전히 로드된 후 클릭
-      const timer = setTimeout(() => {
-        setSelectedBoothId(selectedBooth.id);
-        // 부스 선택 후 콜백 호출
-        if (onBoothSelect) {
-          onBoothSelect();
+      // CSV 파일에서 마커 존재 여부 확인
+      if (boothIdsInCSV.size > 0) {
+        const hasMarker = boothIdsInCSV.has(selectedBooth.id);
+        if (hasMarker) {
+          // 마커가 있으면 클릭 이벤트 발생
+          const timer = setTimeout(() => {
+            setSelectedBoothId(selectedBooth.id);
+            if (onBoothSelect) {
+              onBoothSelect();
+            }
+          }, 500);
+          
+          return () => clearTimeout(timer);
+        } else {
+          // 마커가 없으면 부스 정보만 표시
+          const timer = setTimeout(() => {
+            setSelectedBoothId(selectedBooth.id);
+          }, 500);
+          
+          return () => clearTimeout(timer);
         }
-      }, 500);
-      
-      return () => clearTimeout(timer);
+      }
     }
-  }, [selectedBooth, boothData, onBoothSelect]);
+  }, [selectedBooth, boothData, boothIdsInCSV, onBoothSelect]);
 
   // 평가된 부스 데이터 로드
   useEffect(() => {
@@ -167,13 +210,14 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations, selectedBooth,
   };
 
   // 표시할 부스 위치 필터링
-  // Admin 모드: 모든 부스, 일반 모드: 추천된 부스 + 평가된 부스
+  // Admin 모드: 모든 부스, 일반 모드: 추천된 부스 + 평가된 부스 + 선택된 부스
   const displayPositions = isAdminMode
     ? positions
     : positions.filter(pos => {
       const isRecommended = activeBoothIds.has(pos.booth_id);
       const isEvaluatedBooth = evaluatedBooths.has(pos.booth_id);
-      return isRecommended || isEvaluatedBooth;
+      const isSelected = selectedBoothId === pos.booth_id;
+      return isRecommended || isEvaluatedBooth || isSelected;
     });
 
   return (
@@ -241,6 +285,29 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations, selectedBooth,
                 </React.Fragment>
               );
             })}
+            
+            {/* 마커가 없는 부스의 임시 마커 (지도 중앙) */}
+            {selectedBoothId && !boothIdsInCSV.has(selectedBoothId) && !isAdminMode && (
+              <>
+                <div
+                  className="booth-marker temp-marker selected"
+                  style={{
+                    left: '50%',
+                    top: '50%',
+                  }}
+                  onClick={(e) => handleMarkerClick(e, selectedBoothId)}
+                />
+                <div 
+                  className="booth-tooltip"
+                  style={{
+                    left: '50%',
+                    top: '50%',
+                  }}
+                >
+                  {getBoothName(selectedBoothId)}
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -256,10 +323,10 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations, selectedBooth,
 
         .map-content {
           background: white;
-          border-radius: 12px;
-          padding: 20px;
-          margin: 20px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          border-radius: 0;
+          padding: 0;
+          margin: 0;
+          box-shadow: none;
         }
 
         .loading {
@@ -279,7 +346,7 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations, selectedBooth,
           width: 100%;
           height: auto;
           display: block;
-          border-radius: 8px;
+          border-radius: 0;
         }
 
 
@@ -325,6 +392,12 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations, selectedBooth,
           border: 2px solid white;
         }
 
+        .booth-marker.temp-marker {
+          background: #4caf50;
+          border: 2px solid white;
+          animation: pulse 2s infinite;
+        }
+
         .booth-marker:hover {
           transform: translate(-50%, -50%) scale(1.3);
           z-index: 2;
@@ -363,6 +436,67 @@ const MapPage: React.FC<MapPageProps> = ({ user, recommendations, selectedBooth,
           50% {
             box-shadow: 0 2px 8px rgba(0,0,0,0.3), 0 0 0 10px rgba(255, 82, 82, 0);
           }
+        }
+
+        .booth-info-box {
+          position: absolute;
+          bottom: 20px;
+          left: 20px;
+          right: 20px;
+          background: white;
+          border: 1px solid #e0e0e0;
+          border-radius: 12px;
+          padding: 16px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          z-index: 100;
+          animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+          from {
+            transform: translateY(20px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+
+        .booth-info-box h3 {
+          margin: 0 0 8px 0;
+          color: #1976d2;
+          font-size: 1rem;
+          font-weight: 600;
+        }
+
+        .booth-details p {
+          margin: 4px 0;
+          font-size: 0.85rem;
+          color: #666;
+        }
+
+        .info-box-close {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          background: none;
+          border: none;
+          font-size: 24px;
+          color: #666;
+          cursor: pointer;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          transition: all 0.2s;
+        }
+
+        .info-box-close:hover {
+          background: #f0f0f0;
+          color: #333;
         }
 
       `}</style>

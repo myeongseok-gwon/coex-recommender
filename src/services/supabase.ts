@@ -273,6 +273,35 @@ export const userService = {
     if (updateError) throw updateError;
 
     return { compositeUrl, drawingUrl };
+  },
+
+  async incrementRecommendationModalClicks(userId: string, boothId: string) {
+    // Get current value and increment it for the specific booth
+    const { data: user, error: fetchError } = await supabase
+      .from('user')
+      .select('recommendation_modal_clicks')
+      .eq('user_id', userId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    const currentClicks = user?.recommendation_modal_clicks || {};
+    const currentBoothClicks = currentClicks[boothId] || 0;
+    const newBoothClicks = currentBoothClicks + 1;
+    
+    const updatedClicks = {
+      ...currentClicks,
+      [boothId]: newBoothClicks
+    };
+
+    const { error: updateError } = await supabase
+      .from('user')
+      .update({ recommendation_modal_clicks: updatedClicks })
+      .eq('user_id', userId);
+
+    if (updateError) throw updateError;
+
+    console.log(`✅ 추천 모달 클릭 카운트 증가 (${boothId}): ${currentBoothClicks} → ${newBoothClicks}`);
   }
 };
 

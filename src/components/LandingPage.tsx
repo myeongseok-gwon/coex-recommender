@@ -172,7 +172,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onUserValid }) => {
   return (
     <div className="container">
       <div className="header">
-        <h1>COEX 추천 시스템</h1>
+        <h1>푸드위크 추천 시스템</h1>
         <p>전화번호를 입력해주세요. (로그인 및 추첨 목적)</p>
         {locationPermission !== 'granted' && (
           <div className="location-notice">

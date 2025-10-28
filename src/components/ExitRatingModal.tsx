@@ -38,9 +38,8 @@ const ExitRatingModal: React.FC<ExitRatingModalProps> = ({ onClose, onSubmit }) 
         <div className="rating-sections">
           {/* 추천 시스템 만족도 */}
           <div className="rating-section">
-            <h3>1. 추천 시스템이 도움이 되었나요?</h3>
+            <h3>추천 시스템이 도움이 되었나요?</h3>
             <div className="rating-container">
-              <span className="rating-label-left">전혀 도움 안됨</span>
               <div className="rating-stars">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <span
@@ -52,7 +51,6 @@ const ExitRatingModal: React.FC<ExitRatingModalProps> = ({ onClose, onSubmit }) 
                   </span>
                 ))}
               </div>
-              <span className="rating-label-right">매우 도움됨</span>
             </div>
             {recommendationRating > 0 && (
               <div className="rating-feedback">
@@ -67,9 +65,8 @@ const ExitRatingModal: React.FC<ExitRatingModalProps> = ({ onClose, onSubmit }) 
 
           {/* 전시회 만족도 */}
           <div className="rating-section">
-            <h3>2. 전시회에 전반적으로 얼마나 만족하셨나요?</h3>
+            <h3>전시회에 전반적으로 얼마나 만족하셨나요?</h3>
             <div className="rating-container">
-              <span className="rating-label-left">매우 불만족</span>
               <div className="rating-stars">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <span
@@ -81,7 +78,6 @@ const ExitRatingModal: React.FC<ExitRatingModalProps> = ({ onClose, onSubmit }) 
                   </span>
                 ))}
               </div>
-              <span className="rating-label-right">매우 만족</span>
             </div>
             {exhibitionRating > 0 && (
               <div className="rating-feedback">
@@ -141,6 +137,9 @@ const ExitRatingModal: React.FC<ExitRatingModalProps> = ({ onClose, onSubmit }) 
           .modal-header {
             text-align: center;
             margin-bottom: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
           }
 
           .modal-header h2 {
@@ -159,39 +158,40 @@ const ExitRatingModal: React.FC<ExitRatingModalProps> = ({ onClose, onSubmit }) 
           .rating-sections {
             display: flex;
             flex-direction: column;
-            gap: 32px;
+            gap: 40px;
             margin-bottom: 32px;
+          }
+
+          .rating-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
           }
 
           .rating-section h3 {
             color: #333;
             font-size: 1.1rem;
             font-weight: 600;
-            margin: 0 0 16px 0;
+            margin: 0 0 4px 0;
+            text-align: center;
           }
 
           .rating-container {
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 12px;
             flex-wrap: wrap;
-          }
-
-          .rating-label-left,
-          .rating-label-right {
-            font-size: 0.85rem;
-            color: #666;
-            white-space: nowrap;
           }
 
           .rating-stars {
             display: flex;
             gap: 4px;
-            margin: 0 8px;
           }
 
           .star {
-            font-size: 2rem;
+            font-size: 2.5rem;
             color: #ddd;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -279,11 +279,6 @@ const ExitRatingModal: React.FC<ExitRatingModalProps> = ({ onClose, onSubmit }) 
               flex-direction: column;
               align-items: center;
               gap: 8px;
-            }
-
-            .rating-label-left,
-            .rating-label-right {
-              font-size: 0.8rem;
             }
 
             .star {

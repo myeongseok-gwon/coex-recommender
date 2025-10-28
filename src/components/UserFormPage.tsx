@@ -8,8 +8,6 @@ interface UserFormPageProps {
 }
 
 // 관심사 데이터 구조
-
-// 관심사 데이터 구조
 const INTEREST_CATEGORIES = {
   "신선식품": {
     icon: "🥬",
@@ -66,19 +64,21 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ onSubmit, onBack, initialDa
   const [formData, setFormData] = useState<UserFormData>(initialData || {
     age: 0,
     gender: '',
-    visitPurpose: '',
+    visitPurpose: '탐색 및 둘러보기',
     interests: {},
     hasCompanion: false,
     companionCount: 0,
     specificGoal: '',
-    // 새로운 선택 항목들
-    hasChildren: false,
-    childInterests: [],
-    hasPets: false,
-    petTypes: [],
-    hasAllergies: false,
-    allergies: ''
   });
+
+  // 필드별 에러 메시지 상태
+  const [fieldErrors, setFieldErrors] = useState<{
+    age?: string;
+    gender?: string;
+    visitPurpose?: string;
+    interests?: string;
+    companionCount?: string;
+  }>({});
 
   // 이모지 제거 함수
   const removeEmojis = (text: string): string => {
@@ -88,29 +88,52 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ onSubmit, onBack, initialDa
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // 에러 초기화
+    const newErrors: typeof fieldErrors = {};
+    let hasErrors = false;
+
     // 필수 필드 검증
-    if (!formData.age || !formData.gender) {
-      alert('나이와 성별을 입력해주세요.');
-      return;
+    if (!formData.age || formData.age <= 0) {
+      newErrors.age = '나이를 입력해주세요.';
+      hasErrors = true;
+    }
+
+    if (!formData.gender) {
+      newErrors.gender = '성별을 선택해주세요.';
+      hasErrors = true;
     }
 
     if (!formData.visitPurpose) {
-      alert('전시회 방문 목적을 선택해주세요.');
-      return;
+      newErrors.visitPurpose = '전시회 방문 목적을 선택해주세요.';
+      hasErrors = true;
     }
 
-    // 관심사 검증 (항상 필수)
+    // 관심사 검증
     const hasInterests = formData.interests && Object.keys(formData.interests).length > 0;
     if (!hasInterests) {
-      alert('관심사를 선택해주세요.');
-      return;
+      newErrors.interests = '관심사를 선택해주세요.';
+      hasErrors = true;
     }
 
     // 동행 정보 검증
     if (formData.hasCompanion && (!formData.companionCount || formData.companionCount < 1)) {
-      alert('동행이 있다면 인원수를 입력해주세요.');
+      newErrors.companionCount = '동행 인원수를 입력해주세요.';
+      hasErrors = true;
+    }
+
+    // 에러가 있으면 설정하고 스크롤
+    if (hasErrors) {
+      setFieldErrors(newErrors);
+      // 첫 번째 에러 필드로 스크롤
+      const firstErrorField = document.querySelector('.field-error');
+      if (firstErrorField) {
+        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
+
+    // 에러가 없으면 초기화 후 제출
+    setFieldErrors({});
 
     // 목적이 "명확한 목표"인 경우 specific_goal 검증
     if (formData.visitPurpose === '명확한 목표' && !formData.specificGoal?.trim()) {
@@ -145,6 +168,11 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ onSubmit, onBack, initialDa
   };
 
   const handleInterestToggle = (subcategory: string, item: string) => {
+    // 관심사를 선택하면 에러 제거
+    if (fieldErrors.interests) {
+      setFieldErrors(prev => ({ ...prev, interests: undefined }));
+    }
+    
     setFormData(prev => {
       const newInterests = prev.interests ? { ...prev.interests } : {};
       
@@ -161,7 +189,7 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ onSubmit, onBack, initialDa
           delete newInterests[subcategory];
         }
       } else {
-        // 선택되지 않은 항목이면 추가 (불변성 유지를 위해 새 배열 생성)
+        // 선택되지 않은 항목이면 추가 (불변 каждой 유지를 위해 새 배열 생성)
         newInterests[subcategory] = [...newInterests[subcategory], item];
       }
       
@@ -237,12 +265,18 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ onSubmit, onBack, initialDa
           <input
             type="number"
             id="age"
-            className="form-input"
+            className={`form-input ${fieldErrors.age ? 'error' : ''}`}
             value={formData.age || ''}
-            onChange={(e) => handleInputChange('age', parseInt(e.target.value) || 0)}
+            onChange={(e) => {
+              handleInputChange('age', parseInt(e.target.value) || 0);
+              if (fieldErrors.age) {
+                setFieldErrors(prev => ({ ...prev, age: undefined }));
+              }
+            }}
             placeholder="나이를 입력하세요"
             required
           />
+          {fieldErrors.age && <div className="field-error">{fieldErrors.age}</div>}
         </div>
 
         <div className="form-group">
@@ -251,175 +285,41 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ onSubmit, onBack, initialDa
           </label>
           <select
             id="gender"
-            className="form-select"
+            className={`form-select ${fieldErrors.gender ? 'error' : ''}`}
             value={formData.gender}
-            onChange={(e) => handleInputChange('gender', e.target.value)}
+            onChange={(e) => {
+              handleInputChange('gender', e.target.value);
+              if (fieldErrors.gender) {
+                setFieldErrors(prev => ({ ...prev, gender: undefined }));
+              }
+            }}
             required
           >
             <option value="">성별을 선택하세요</option>
             <option value="남성">남성</option>
             <option value="여성">여성</option>
           </select>
+          {fieldErrors.gender && <div className="field-error">{fieldErrors.gender}</div>}
         </div>
 
-        {/* 새로운 선택 항목들 */}
-        <div className="form-group">
-          <label className="form-label">
-            선택 항목 (다중 선택 가능)
-          </label>
-          <div className="checkbox-group">
-            <label className="checkbox-item">
-              <input
-                type="checkbox"
-                checked={formData.hasChildren || false}
-                onChange={(e) => handleSelectionToggle('hasChildren', e.target.checked)}
-              />
-              <span className="checkbox-label">자녀가 있어요</span>
-            </label>
-            <label className="checkbox-item">
-              <input
-                type="checkbox"
-                checked={formData.hasPets || false}
-                onChange={(e) => handleSelectionToggle('hasPets', e.target.checked)}
-              />
-              <span className="checkbox-label">반려동물이 있어요</span>
-            </label>
-            <label className="checkbox-item">
-              <input
-                type="checkbox"
-                checked={formData.hasAllergies || false}
-                onChange={(e) => handleSelectionToggle('hasAllergies', e.target.checked)}
-              />
-              <span className="checkbox-label">알러지가 있어요</span>
-            </label>
-            <label className="checkbox-item">
-              <input
-                type="checkbox"
-                checked={!formData.hasChildren && !formData.hasPets && !formData.hasAllergies}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    setFormData(prev => ({
-                      ...prev,
-                      hasChildren: false,
-                      childInterests: [],
-                      hasPets: false,
-                      petTypes: [],
-                      hasAllergies: false,
-                      allergies: ''
-                    }));
-                  }
-                }}
-              />
-              <span className="checkbox-label">해당 사항 없어요</span>
-            </label>
-          </div>
-        </div>
-
-        {/* 자녀 관련 관심사 */}
-        {formData.hasChildren && (
-          <div className="form-group">
-            <label className="form-label">
-              자녀 관련 관심사 (선택사항)
-            </label>
-            <div className="checkbox-group">
-              <label className="checkbox-item">
-                <input
-                  type="checkbox"
-                  checked={formData.childInterests?.includes('분유') || false}
-                  onChange={() => handleChildInterestToggle('분유')}
-                />
-                <span className="checkbox-label">분유</span>
-              </label>
-              <label className="checkbox-item">
-                <input
-                  type="checkbox"
-                  checked={formData.childInterests?.includes('이유식') || false}
-                  onChange={() => handleChildInterestToggle('이유식')}
-                />
-                <span className="checkbox-label">이유식</span>
-              </label>
-            </div>
-          </div>
-        )}
-
-        {/* 반려동물 종류 */}
-        {formData.hasPets && (
-          <div className="form-group">
-            <label className="form-label">
-              반려동물 종류 (다중 선택 가능)
-            </label>
-            <div className="checkbox-group">
-              <label className="checkbox-item">
-                <input
-                  type="checkbox"
-                  checked={formData.petTypes?.includes('강아지') || false}
-                  onChange={() => handlePetTypeToggle('강아지')}
-                />
-                <span className="checkbox-label">강아지</span>
-              </label>
-              <label className="checkbox-item">
-                <input
-                  type="checkbox"
-                  checked={formData.petTypes?.includes('고양이') || false}
-                  onChange={() => handlePetTypeToggle('고양이')}
-                />
-                <span className="checkbox-label">고양이</span>
-              </label>
-              <label className="checkbox-item">
-                <input
-                  type="checkbox"
-                  checked={formData.petTypes?.includes('그 외') || false}
-                  onChange={() => handlePetTypeToggle('그 외')}
-                />
-                <span className="checkbox-label">그 외</span>
-              </label>
-            </div>
-          </div>
-        )}
-
-        {/* 알러지 정보 */}
-        {formData.hasAllergies && (
-          <div className="form-group">
-            <label htmlFor="allergies" className="form-label">
-              알러지 정보
-            </label>
-            <input
-              type="text"
-              id="allergies"
-              className="form-input"
-              value={formData.allergies || ''}
-              onChange={(e) => handleInputChange('allergies', e.target.value)}
-              placeholder="알러지 정보를 입력하세요 (예: 견과류, 유제품 등)"
-            />
-          </div>
-        )}
 
         <div className="form-group">
           <label className="form-label">
             전시회 방문 목적 *
           </label>
           <div className="purpose-options">
-            <label className={`purpose-option ${formData.visitPurpose === '명확한 목표' ? 'selected' : ''}`}>
-              <input
-                type="radio"
-                name="visitPurpose"
-                value="명확한 목표"
-                checked={formData.visitPurpose === '명확한 목표'}
-                onChange={(e) => handleInputChange('visitPurpose', e.target.value)}
-                required
-              />
-              <div className="purpose-content">
-                <div className="purpose-icon">🎯</div>
-                <div className="purpose-text">집중 탐색할 상품/카테고리가 이미 있습니다.</div>
-              </div>
-            </label>
             <label className={`purpose-option ${formData.visitPurpose === '탐색 및 둘러보기' ? 'selected' : ''}`}>
               <input
                 type="radio"
                 name="visitPurpose"
                 value="탐색 및 둘러보기"
                 checked={formData.visitPurpose === '탐색 및 둘러보기'}
-                onChange={(e) => handleInputChange('visitPurpose', e.target.value)}
+                onChange={(e) => {
+                  handleInputChange('visitPurpose', e.target.value);
+                  if (fieldErrors.visitPurpose) {
+                    setFieldErrors(prev => ({ ...prev, visitPurpose: undefined }));
+                  }
+                }}
                 required
               />
               <div className="purpose-content">
@@ -427,7 +327,27 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ onSubmit, onBack, initialDa
                 <div className="purpose-text">다양하게 둘러보면서 탐색하려고 합니다.</div>
               </div>
             </label>
+            <label className={`purpose-option ${formData.visitPurpose === '명확한 목표' ? 'selected' : ''}`}>
+              <input
+                type="radio"
+                name="visitPurpose"
+                value="명확한 목표"
+                checked={formData.visitPurpose === '명확한 목표'}
+                onChange={(e) => {
+                  handleInputChange('visitPurpose', e.target.value);
+                  if (fieldErrors.visitPurpose) {
+                    setFieldErrors(prev => ({ ...prev, visitPurpose: undefined }));
+                  }
+                }}
+                required
+              />
+              <div className="purpose-content">
+                <div className="purpose-icon">🎯</div>
+                <div className="purpose-text">집중 탐색할 상품/카테고리가 이미 있습니다.</div>
+              </div>
+            </label>
           </div>
+          {fieldErrors.visitPurpose && <div className="field-error">{fieldErrors.visitPurpose}</div>}
         </div>
 
         {/* 명확한 목표를 선택한 경우 구체적인 목표 입력 */}
@@ -560,6 +480,7 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ onSubmit, onBack, initialDa
               </div>
             ))}
           </div>
+          {fieldErrors.interests && <div className="field-error">{fieldErrors.interests}</div>}
         </div>
 
         <button type="submit" className="btn btn-primary">
@@ -864,6 +785,41 @@ const UserFormPage: React.FC<UserFormPageProps> = ({ onSubmit, onBack, initialDa
         .companion-option.selected .companion-text {
           font-weight: 600;
           color: #0d47a1;
+        }
+
+        /* 에러 메시지 스타일 */
+        .field-error {
+          color: #d32f2f;
+          font-size: 0.875rem;
+          margin-top: 6px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          animation: shake 0.4s ease-in-out;
+        }
+
+        .field-error::before {
+          content: "⚠️";
+          font-size: 1rem;
+        }
+
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-8px); }
+          75% { transform: translateX(8px); }
+        }
+
+        /* 에러가 있는 입력 필드 스타일 */
+        .form-input.error,
+        .form-select.error {
+          border-color: #d32f2f;
+          box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
+        }
+
+        .form-input.error:focus,
+        .form-select.error:focus {
+          border-color: #d32f2f;
+          box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.2);
         }
       `}</style>
     </div>

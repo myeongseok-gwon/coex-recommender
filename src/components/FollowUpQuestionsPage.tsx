@@ -189,7 +189,7 @@ const FollowUpQuestionsPage: React.FC<FollowUpQuestionsPageProps> = ({
                   className="btn btn-skip"
                   onClick={onSkip}
                 >
-                  건너뛰기
+                  스킵
                 </button>
                 {currentQuestionIndex > 0 && (
                   <button 
@@ -197,7 +197,7 @@ const FollowUpQuestionsPage: React.FC<FollowUpQuestionsPageProps> = ({
                     className="btn btn-secondary"
                     onClick={handlePrevious}
                   >
-                    ← 이전
+                    이전
                   </button>
                 )}
                 <button 
@@ -205,7 +205,7 @@ const FollowUpQuestionsPage: React.FC<FollowUpQuestionsPageProps> = ({
                   className="btn btn-primary"
                   disabled={!currentAnswer.trim()}
                 >
-                  {currentQuestionIndex === questions.length - 1 ? '추천 받기' : '다음 →'}
+                  {currentQuestionIndex === questions.length - 1 ? '추천 받기' : '다음'}
                 </button>
               </div>
             </div>
