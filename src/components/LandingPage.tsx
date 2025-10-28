@@ -42,7 +42,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onUserValid }) => {
     // GPS 서비스 초기화
     const service = new GPSService('');
     setGpsService(service);
-    console.log('📍 GPS 서비스 초기화 완료');
+    console.log('📍 GPS 서비스 초기화 완료.');
     
     // 위치 정보 권한 확인
     checkLocationPermission();
