@@ -26,12 +26,20 @@ export const userService = {
     if (error) throw error;
   },
 
-  async createUser(userId: string) {
+  async createUser(userId: string, options?: {
+    consent_test_participation?: boolean;
+    consent_privacy_collection?: boolean;
+    consent_third_party_sharing?: boolean;
+  }) {
     const { data, error } = await supabase
       .from('user')
       .insert({
         user_id: userId,
-        initial_form_started_at: new Date().toISOString()
+        initial_form_started_at: new Date().toISOString(),
+        is_treat: true,
+        consent_test_participation: options?.consent_test_participation ?? false,
+        consent_privacy_collection: options?.consent_privacy_collection ?? false,
+        consent_third_party_sharing: options?.consent_third_party_sharing ?? false
       })
       .select()
       .single();

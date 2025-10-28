@@ -12,6 +12,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onUserValid }) => {
   const [loading, setLoading] = useState(false);
   const [gpsService, setGpsService] = useState<GPSService | null>(null);
   const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | 'unknown'>('unknown');
+  const [consentTestParticipation, setConsentTestParticipation] = useState(false);
+  const [consentPrivacyCollection, setConsentPrivacyCollection] = useState(false);
+  const [consentThirdPartySharing, setConsentThirdPartySharing] = useState(false);
+  const [expand1, setExpand1] = useState(false);
+  const [expand2, setExpand2] = useState(false);
+  const [expand3, setExpand3] = useState(false);
 
   // 위치 정보 권한 확인 함수
   const checkLocationPermission = async () => {
@@ -89,6 +95,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onUserValid }) => {
       console.log('⚠️ 이미 로딩 중입니다.');
       return;
     }
+
+    // 동의 체크 확인
+    if (!consentTestParticipation || !consentPrivacyCollection || !consentThirdPartySharing) {
+      setError('모든 동의 항목에 체크해야 진행할 수 있습니다.');
+      return;
+    }
     
     setLoading(true);
     setError('');
@@ -145,7 +157,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onUserValid }) => {
         } catch (error: any) {
           // 사용자가 존재하지 않는 경우 새로 생성
           if (error.code === 'PGRST116') {
-            userData = await userService.createUser(trimmedPhoneNumber);
+            userData = await userService.createUser(trimmedPhoneNumber, {
+              consent_test_participation: consentTestParticipation,
+              consent_privacy_collection: consentPrivacyCollection,
+              consent_third_party_sharing: consentThirdPartySharing
+            });
           } else {
             throw error;
           }
@@ -203,7 +219,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onUserValid }) => {
         <button 
           type="submit" 
           className="btn btn-primary"
-          disabled={loading}
+          disabled={loading || !(consentTestParticipation && consentPrivacyCollection && consentThirdPartySharing)}
         >
           {loading ? (
             <>
@@ -214,6 +230,104 @@ const LandingPage: React.FC<LandingPageProps> = ({ onUserValid }) => {
           )}
         </button>
       </form>
+
+      <div className="consent-section">
+        <div className="consent-header">
+          <label className="consent-all">
+            <input
+              type="checkbox"
+              className="mr-2"
+              checked={consentTestParticipation && consentPrivacyCollection && consentThirdPartySharing}
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setConsentTestParticipation(checked);
+                setConsentPrivacyCollection(checked);
+                setConsentThirdPartySharing(checked);
+              }}
+            />
+            전체 동의하기
+          </label>
+        </div>
+
+        <div className="consent-item">
+          <div className="consent-title">
+            <label>
+              <input
+                type="checkbox"
+                className="mr-2"
+                checked={consentTestParticipation}
+                onChange={(e) => setConsentTestParticipation(e.target.checked)}
+              />
+              테스트 참가 동의서
+            </label>
+            <button type="button" className="consent-toggle" onClick={() => setExpand1(!expand1)}>
+              {expand1 ? '접기' : '내용 확인하기'}
+            </button>
+          </div>
+          {expand1 && (
+            <div className="consent-content">
+              <p><strong>본인은 COEX, Impact AI, KAIST에서 진행하는 데모 테스트 참가 및 아래 내용에 자발적으로 동의합니다.</strong></p>
+              <p>본 테스트는 2025 FOOD WEEK 기간 중 A홀 및 B홀 내 지정된 장소에서 진행되며, 제공되는 시스템을 실제로 체험하고 이에 대한 간단한 피드백을 제공하겠습니다.</p>
+              <p>본 테스트는 약 2시간이 소요될 것으로 예상됩니다. 다만, 진행 속도에 따라 더 빠르게 완료될 수도 있습니다.</p>
+              <p>본인은 테스트 참가 중 얻게 되는 모든 정보(테스트 내용, 시스템 등)는 비밀로 유지하고 외부로 유출하지 않겠습니다.</p>
+              <p>테스트 진행에 협조하며 연구진의 안내를 성실히 따르겠습니다.</p>
+            </div>
+          )}
+        </div>
+
+        <div className="consent-item">
+          <div className="consent-title">
+            <label>
+              <input
+                type="checkbox"
+                className="mr-2"
+                checked={consentPrivacyCollection}
+                onChange={(e) => setConsentPrivacyCollection(e.target.checked)}
+              />
+              개인정보 수집 및 활용 동의서
+            </label>
+            <button type="button" className="consent-toggle" onClick={() => setExpand2(!expand2)}>
+              {expand2 ? '접기' : '내용 확인하기'}
+            </button>
+          </div>
+          {expand2 && (
+            <div className="consent-content">
+              <p><strong>본인은 COEX, Impact AI, KAIST에서 진행하는 데모 테스트를 위해 COEX, Impact AI, KAIST가 아래와 같이 본인의 개인 정보를 수집 및 활용하는 것에 동의합니다.</strong></p>
+              <p><strong>수집 및 활용 목적:</strong> 테스트 참가자 본인 확인, 참가 보상 지급, 추천 시스템 개발의 연구 목적</p>
+              <p><strong>수집 항목:</strong> 이름, 연락처(휴대폰 번호), 성별, 연령대, 설문조사에 대한 답변 내용 (서비스 만족도 관련), 위치 정보(동의 시)</p>
+              <p><strong>보유 및 이용 기간:</strong> 참가 신청일로 부터 본 연구 종료일과 참가 신청일로부터 3년이 경과한 날 중 먼저 도래한 날까지 보유하고, 그 익일에 개인정보 파기</p>
+              <p><strong>개인정보주체는 위 동의를 거부할 수 있습니다. 다만, 거부 시에는 데모 테스트에 참여할 수 없습니다.</strong></p>
+            </div>
+          )}
+        </div>
+
+        <div className="consent-item">
+          <div className="consent-title">
+            <label>
+              <input
+                type="checkbox"
+                className="mr-2"
+                checked={consentThirdPartySharing}
+                onChange={(e) => setConsentThirdPartySharing(e.target.checked)}
+              />
+              개인정보 제3자 제공 동의서
+            </label>
+            <button type="button" className="consent-toggle" onClick={() => setExpand3(!expand3)}>
+              {expand3 ? '접기' : '내용 확인하기'}
+            </button>
+          </div>
+          {expand3 && (
+            <div className="consent-content">
+              <p><strong>COEX, Impact AI, KAIST는 데모 테스트를 위해 아래와 같이 개인 정보의 제공에 관한 동의를 요청 드립니다.</strong></p>
+              <p><strong>제공받는 자:</strong> 추천 시스템 연구 업무를 수행하는 COEX, Impact AI, KAIST 임직원, 서울경제진흥원</p>
+              <p><strong>제공받는 자의 이용 목적:</strong> 추천 시스템 개발의 연구 목적</p>
+              <p><strong>제공하는 항목:</strong> 이름, 연락처(휴대폰 번호), 성별, 연령대, 설문조사에 대한 답변 내용 (서비스 만족도 관련), 위치 정보 (동의 시)</p>
+              <p><strong>제공받는 자의 보유 및 이용 기간:</strong> 참가 신청일로 부터 본 연구 종료일과 참가 신청일로부터 3년이 경과한 날 중 먼저 도래한 날까지 보유하고, 그 익일에 개인정보 파기</p>
+              <p><strong>개인정보주체는 위 동의에 거부할 수 있습니다. 다만, 거부 시에는 데모 테스트에 참여할 수 없습니다.</strong></p>
+            </div>
+          )}
+        </div>
+      </div>
 
       <style>{`
         .container {
@@ -656,6 +770,61 @@ const LandingPage: React.FC<LandingPageProps> = ({ onUserValid }) => {
           transform: none;
           box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
         }
+
+        .consent-section {
+          margin-top: 16px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 12px 12px;
+        }
+
+        /* 체크박스와 라벨 텍스트 사이 간격을 조금 더 넓힘 */
+        .consent-section .mr-2 {
+          margin-right: 0.5rem;
+        }
+
+        .consent-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+        }
+
+        .consent-all {
+          font-weight: 600;
+          color: #111827;
+        }
+
+        .consent-item {
+          border-top: 1px dashed #e5e7eb;
+          padding-top: 10px;
+          margin-top: 10px;
+        }
+
+        .consent-title {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .consent-toggle {
+          background: transparent;
+          border: none;
+          color: #2563eb;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        .consent-content {
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          padding: 10px 12px;
+          margin-top: 8px;
+          color: #374151;
+          font-size: 0.9rem;
+        }
+
 
       `}</style>
     </div>

@@ -3,12 +3,16 @@ export interface User {
   age?: number;
   gender?: string;
   visit_purpose?: string;
+  is_treat?: boolean;
   interests?: Record<string, string[]>;
   has_companion?: boolean;
   companion_count?: number;
   specific_goal?: string;
   followup_questions?: string;
   followup_answers?: string;
+  consent_test_participation?: boolean;
+  consent_privacy_collection?: boolean;
+  consent_third_party_sharing?: boolean;
   // 새로운 선택 항목들
   has_children?: boolean;
   child_interests?: string[]; // 분유, 이유식 등

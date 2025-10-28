@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS "user" (
   age INTEGER,
   gender VARCHAR(10),
   visit_purpose VARCHAR(50),
+  is_treat BOOLEAN DEFAULT TRUE,
   interests JSONB,
   followup_questions TEXT,
   followup_answers TEXT,
