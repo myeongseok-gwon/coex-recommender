@@ -2,22 +2,24 @@ import React, { useState } from 'react';
 
 interface ExitRatingModalProps {
   onClose: () => void;
-  onSubmit: (recommendationRating: number, exhibitionRating: number) => void;
+  onSubmit: (recommendationRating: number, exhibitionRating: number, recommendationImpact: boolean, mapHelpfulness: number) => void;
 }
 
 const ExitRatingModal: React.FC<ExitRatingModalProps> = ({ onClose, onSubmit }) => {
   const [recommendationRating, setRecommendationRating] = useState<number>(0);
   const [exhibitionRating, setExhibitionRating] = useState<number>(0);
+  const [recommendationImpact, setRecommendationImpact] = useState<boolean | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mapHelpfulness, setMapHelpfulness] = useState<number>(0);
 
   const handleSubmit = async () => {
-    if (recommendationRating === 0 || exhibitionRating === 0) {
+    if (recommendationRating === 0 || exhibitionRating === 0 || recommendationImpact === null || mapHelpfulness === 0) {
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await onSubmit(recommendationRating, exhibitionRating);
+      await onSubmit(recommendationRating, exhibitionRating, recommendationImpact, mapHelpfulness);
     } catch (error) {
       console.error('별점 제출 오류:', error);
     } finally {
@@ -25,7 +27,7 @@ const ExitRatingModal: React.FC<ExitRatingModalProps> = ({ onClose, onSubmit }) 
     }
   };
 
-  const isSubmitEnabled = recommendationRating > 0 && exhibitionRating > 0;
+  const isSubmitEnabled = recommendationRating > 0 && exhibitionRating > 0 && recommendationImpact !== null && mapHelpfulness > 0;
 
   return (
     <div className="exit-rating-modal-overlay">
@@ -36,39 +38,12 @@ const ExitRatingModal: React.FC<ExitRatingModalProps> = ({ onClose, onSubmit }) 
         </div>
 
         <div className="rating-sections">
-          {/* 추천 시스템 만족도 */}
-          <div className="rating-section">
-            <h3>추천 시스템이 도움이 되었나요?</h3>
-            <div className="rating-container">
-              <div className="rating-stars">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <span
-                    key={star}
-                    className={`star ${star <= recommendationRating ? 'active' : ''}`}
-                    onClick={() => setRecommendationRating(star)}
-                  >
-                    ★
-                  </span>
-                ))}
-              </div>
-            </div>
-            {recommendationRating > 0 && (
-              <div className="rating-feedback">
-                {recommendationRating === 1 && "전혀 도움 안됨"}
-                {recommendationRating === 2 && "조금 도움됨"}
-                {recommendationRating === 3 && "보통 도움됨"}
-                {recommendationRating === 4 && "도움됨"}
-                {recommendationRating === 5 && "매우 도움됨"}
-              </div>
-            )}
-          </div>
-
           {/* 전시회 만족도 */}
           <div className="rating-section">
             <h3>전시회에 전반적으로 얼마나 만족하셨나요?</h3>
             <div className="rating-container">
               <div className="rating-stars">
-                {[1, 2, 3, 4, 5].map((star) => (
+                {[1, 2, 3, 4, 5, 6, 7].map((star) => (
                   <span
                     key={star}
                     className={`star ${star <= exhibitionRating ? 'active' : ''}`}
@@ -83,9 +58,93 @@ const ExitRatingModal: React.FC<ExitRatingModalProps> = ({ onClose, onSubmit }) 
               <div className="rating-feedback">
                 {exhibitionRating === 1 && "매우 불만족"}
                 {exhibitionRating === 2 && "불만족"}
-                {exhibitionRating === 3 && "보통"}
-                {exhibitionRating === 4 && "만족"}
-                {exhibitionRating === 5 && "매우 만족"}
+                {exhibitionRating === 3 && "약간 불만족"}
+                {exhibitionRating === 4 && "보통"}
+                {exhibitionRating === 5 && "약간 만족"}
+                {exhibitionRating === 6 && "만족"}
+                {exhibitionRating === 7 && "매우 만족"}
+              </div>
+            )}
+          </div>
+
+          {/* 추천 시스템 만족도 */}
+          <div className="rating-section">
+            <h3>추천 시스템이 도움이 되었나요?</h3>
+            <div className="rating-container">
+              <div className="rating-stars">
+                {[1, 2, 3, 4, 5, 6, 7].map((star) => (
+                  <span
+                    key={star}
+                    className={`star ${star <= recommendationRating ? 'active' : ''}`}
+                    onClick={() => setRecommendationRating(star)}
+                  >
+                    ★
+                  </span>
+                ))}
+              </div>
+            </div>
+            {recommendationRating > 0 && (
+              <div className="rating-feedback">
+                {recommendationRating === 1 && "전혀 도움 안됨"}
+                {recommendationRating === 2 && "거의 도움 안됨"}
+                {recommendationRating === 3 && "조금 도움 안됨"}
+                {recommendationRating === 4 && "보통"}
+                {recommendationRating === 5 && "조금 도움됨"}
+                {recommendationRating === 6 && "도움됨"}
+                {recommendationRating === 7 && "매우 도움됨"}
+              </div>
+            )}
+          </div>
+
+          {/* 추천 영향 여부 */}
+          <div className="rating-section">
+            <h3>
+              부스의 방문에 추천이 유의미한<br />
+              영향을 준 적이 있나요?
+            </h3>
+            <div className="rating-container">
+              <div className="boolean-buttons">
+                <button
+                  className={`boolean-btn ${recommendationImpact === true ? 'active' : ''}`}
+                  onClick={() => setRecommendationImpact(true)}
+                >
+                 ✅ 예
+                </button>
+                <button
+                  className={`boolean-btn ${recommendationImpact === false ? 'active' : ''}`}
+                  onClick={() => setRecommendationImpact(false)}
+                >
+                  ❌ 아니오
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 지도 기능 도움 정도 */}
+          <div className="rating-section">
+            <h3>지도 기능이 도움이 되었나요?</h3>
+            <div className="rating-container">
+              <div className="rating-stars">
+                {[1, 2, 3, 4, 5, 6, 7].map((star) => (
+                  <span
+                    key={star}
+                    className={`star ${star <= mapHelpfulness ? 'active' : ''}`}
+                    onClick={() => setMapHelpfulness(star)}
+                  >
+                    ★
+                  </span>
+                ))}
+              </div>
+            </div>
+            {mapHelpfulness > 0 && (
+              <div className="rating-feedback">
+                {mapHelpfulness === 1 && "전혀 도움 안됨"}
+                {mapHelpfulness === 2 && "거의 도움 안됨"}
+                {mapHelpfulness === 3 && "조금 도움 안됨"}
+                {mapHelpfulness === 4 && "보통"}
+                {mapHelpfulness === 5 && "조금 도움됨"}
+                {mapHelpfulness === 6 && "도움됨"}
+                {mapHelpfulness === 7 && "매우 도움됨"}
               </div>
             )}
           </div>
@@ -171,7 +230,7 @@ const ExitRatingModal: React.FC<ExitRatingModalProps> = ({ onClose, onSubmit }) 
 
           .rating-section h3 {
             color: #333;
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: 600;
             margin: 0 0 4px 0;
             text-align: center;
@@ -187,7 +246,9 @@ const ExitRatingModal: React.FC<ExitRatingModalProps> = ({ onClose, onSubmit }) 
 
           .rating-stars {
             display: flex;
-            gap: 4px;
+            gap: 2px;
+            flex-wrap: wrap;
+            justify-content: center;
           }
 
           .star {
@@ -204,6 +265,44 @@ const ExitRatingModal: React.FC<ExitRatingModalProps> = ({ onClose, onSubmit }) 
 
           .star.active {
             color: #ffc107;
+          }
+
+          .boolean-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-direction: column;
+          }
+
+          .boolean-btn {
+            padding: 12px 32px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            color: #666;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 80px;
+          }
+
+          .boolean-btn:hover {
+            border-color: #1976d2;
+            color: #1976d2;
+            transform: translateY(-1px);
+          }
+
+          .boolean-btn.active {
+            background: #1976d2;
+            border-color: #1976d2;
+            color: white;
+            box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+          }
+
+          .boolean-btn.active:hover {
+            background: #1565c0;
+            border-color: #1565c0;
           }
 
           .rating-feedback {
@@ -283,6 +382,16 @@ const ExitRatingModal: React.FC<ExitRatingModalProps> = ({ onClose, onSubmit }) 
 
             .star {
               font-size: 1.8rem;
+            }
+
+            .boolean-buttons {
+              flex-direction: column;
+              gap: 12px;
+            }
+
+            .boolean-btn {
+              padding: 10px 24px;
+              font-size: 0.9rem;
             }
           }
         `}</style>

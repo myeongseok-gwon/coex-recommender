@@ -702,8 +702,8 @@ const App: React.FC = () => {
     setShowExitRatingModal(true);
   };
 
-  const handleExitRatingSubmit = async (recommendationRating: number, exhibitionRating: number) => {
-    console.log('⭐ 별점 제출:', { recommendationRating, exhibitionRating });
+  const handleExitRatingSubmit = async (recommendationRating: number, exhibitionRating: number, recommendationImpact: boolean, mapHelpfulness: number) => {
+    console.log('⭐ 별점 제출:', { recommendationRating, exhibitionRating, recommendationImpact, mapHelpfulness });
     
     try {
       // 종료시점 저장 (ended_at 업데이트)
@@ -714,7 +714,7 @@ const App: React.FC = () => {
 
       // 별점 저장
       if (state.currentUser) {
-        await userService.updateExitRatings(state.currentUser.user_id, recommendationRating, exhibitionRating);
+        await userService.updateExitRatings(state.currentUser.user_id, recommendationRating, exhibitionRating, recommendationImpact, mapHelpfulness);
         console.log('✅ 별점 저장 완료');
       }
     } catch (error) {
