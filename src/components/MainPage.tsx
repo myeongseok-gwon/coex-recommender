@@ -10,7 +10,6 @@ interface MainPageProps {
   user: User;
   recommendations: Recommendation[];
   boothData: Booth[];
-  onBack: () => void;
   onExit: () => void;
 }
 
@@ -20,7 +19,6 @@ const MainPage: React.FC<MainPageProps> = ({
   user,
   recommendations,
   boothData,
-  onBack,
   onExit
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('recommendations');
@@ -235,9 +233,9 @@ const MainPage: React.FC<MainPageProps> = ({
                 )}
                 <button 
                   className="btn btn-primary"
-                  onClick={onBack}
+                  onClick={() => window.location.reload()}
                 >
-                  {isUserCompleted ? '돌아가기' : '다시 시작하기'}
+                  {isUserCompleted ? '새로고침' : '다시 시작하기'}
                 </button>
               </div>
             )}
@@ -302,7 +300,6 @@ const MainPage: React.FC<MainPageProps> = ({
           <MapPage
             user={user}
             recommendations={recommendations}
-            onBack={onBack}
             selectedBooth={selectedBoothForMap}
             onBoothSelect={() => setSelectedBoothForMap(null)}
           />
@@ -317,9 +314,6 @@ const MainPage: React.FC<MainPageProps> = ({
   return (
     <div className="container">
       <div className="top-nav-bar">
-        <div className="nav-left" onClick={onBack}>
-          ← 뒤로가기
-        </div>
         {!isUserCompleted && (
           <div className="nav-right" onClick={onExit}>
             퇴장
@@ -394,7 +388,7 @@ const MainPage: React.FC<MainPageProps> = ({
 
         .top-nav-bar {
           display: flex;
-          justify-content: space-between;
+          justify-content: flex-end;
           align-items: center;
           background: #1976d2;
           color: white;

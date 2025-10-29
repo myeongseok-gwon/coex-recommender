@@ -5,7 +5,6 @@ import { boothPositionService, evaluationService } from '../services/supabase';
 interface MapPageProps {
   user: User;
   recommendations: Recommendation[];
-  onBack: () => void;
   selectedBooth?: Booth | null;
   onBoothSelect?: () => void;
 }

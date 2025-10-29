@@ -821,7 +821,6 @@ const App: React.FC = () => {
             user={state.currentUser}
             recommendations={state.recommendations}
             boothData={state.boothData}
-            onBack={handleBack}
             onExit={handleExit}
           />
         );
@@ -846,7 +845,6 @@ const App: React.FC = () => {
           <MapPage
             user={state.currentUser}
             recommendations={state.recommendations}
-            onBack={handleBack}
           />
         );
       
